@@ -599,7 +599,7 @@ export default function RiskDashboardPage() {
       </section>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
-        <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
+        <section className="min-w-0 rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-[16px] font-semibold text-[var(--foreground)]">Security feed activity</h2>
@@ -640,7 +640,7 @@ export default function RiskDashboardPage() {
           )}
         </section>
 
-        <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
+        <section className="min-w-0 rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-[16px] font-semibold text-[var(--foreground)]">Alert engagement</h2>

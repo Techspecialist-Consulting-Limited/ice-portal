@@ -376,14 +376,18 @@ export function IncidentPortalShell({
           <div className="mx-auto max-w-[1600px] px-4 py-5 lg:px-6 lg:py-6">
             {breadcrumbs && <div className="mb-4 flex items-center gap-2 text-[12px] text-[var(--muted-foreground)]">{breadcrumbs}</div>}
 
-            <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div className="mb-5 flex flex-col gap-4 min-[1700px]:flex-row min-[1700px]:items-end min-[1700px]:justify-between">
               <div>
                 {eyebrow && <div className="text-[13px] text-[var(--muted-foreground)]">{eyebrow}</div>}
                 <h1 className={cn("font-semibold tracking-[-0.04em] text-[var(--foreground)]", titleClassName ?? "text-[38px] leading-[44px]")}>{pageTitle}</h1>
                 {description && <p className="mt-1 text-[15px] text-[var(--muted-foreground)]">{description}</p>}
               </div>
 
-              {actions && <div className="flex items-center gap-2">{actions}</div>}
+              {actions && (
+                <div className="flex flex-wrap items-center gap-2 [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+                  {actions}
+                </div>
+              )}
             </div>
 
             {children}
