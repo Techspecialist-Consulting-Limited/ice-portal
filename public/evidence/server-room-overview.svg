@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="Illustration of a server room with rows of equipment racks and light smoke near the ceiling">
+  <defs>
+    <linearGradient id="room" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1b16"/>
+      <stop offset="1" stop-color="#132a22"/>
+    </linearGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cbd8d1" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#cbd8d1" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b3a2f"/>
+      <stop offset="1" stop-color="#0f241d"/>
+    </linearGradient>
+    <linearGradient id="rack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22463a"/>
+      <stop offset="1" stop-color="#16332a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#room)"/>
+
+  <!-- ceiling -->
+  <rect x="0" y="0" width="1200" height="120" fill="#0b1712"/>
+  <g fill="#3d5a4e">
+    <rect x="120" y="46" width="240" height="12" rx="3"/>
+    <rect x="470" y="46" width="240" height="12" rx="3"/>
+    <rect x="820" y="46" width="240" height="12" rx="3"/>
+  </g>
+
+  <!-- smoke haze -->
+  <rect x="0" y="90" width="1200" height="260" fill="url(#haze)"/>
+  <g fill="#dbe6df" opacity="0.16">
+    <circle cx="330" cy="170" r="70"/>
+    <circle cx="430" cy="140" r="58"/>
+    <circle cx="820" cy="160" r="66"/>
+    <circle cx="905" cy="135" r="50"/>
+  </g>
+
+  <!-- floor -->
+  <path d="M0 620 L1200 620 L1200 800 L0 800 Z" fill="url(#floor)"/>
+  <g stroke="#2c5445" stroke-width="2" opacity="0.35">
+    <path d="M0 620 L1200 620"/>
+    <path d="M160 620 L60 800"/>
+    <path d="M440 620 L380 800"/>
+    <path d="M760 620 L820 800"/>
+    <path d="M1040 620 L1140 800"/>
+  </g>
+
+  <!-- back racks -->
+  <g opacity="0.75">
+    <rect x="180" y="250" width="150" height="330" rx="8" fill="#1a3a2f"/>
+    <rect x="360" y="250" width="150" height="330" rx="8" fill="#1a3a2f"/>
+    <rect x="690" y="250" width="150" height="330" rx="8" fill="#1a3a2f"/>
+    <rect x="870" y="250" width="150" height="330" rx="8" fill="#1a3a2f"/>
+  </g>
+
+  <!-- front rack -->
+  <rect x="470" y="230" width="230" height="390" rx="10" fill="url(#rack)" stroke="#2f5c4c" stroke-width="2"/>
+  <rect x="492" y="256" width="186" height="40" rx="4" fill="#0f241d"/>
+  <rect x="492" y="312" width="186" height="40" rx="4" fill="#0f241d"/>
+  <rect x="492" y="368" width="186" height="40" rx="4" fill="#0f241d"/>
+  <rect x="492" y="424" width="186" height="40" rx="4" fill="#0f241d"/>
+  <rect x="492" y="480" width="186" height="40" rx="4" fill="#0f241d"/>
+  <g>
+    <circle cx="512" cy="276" r="5" fill="#39d98a"/>
+    <circle cx="534" cy="276" r="5" fill="#39d98a"/>
+    <circle cx="556" cy="276" r="5" fill="#1c7a4f"/>
+    <circle cx="512" cy="332" r="5" fill="#39d98a"/>
+    <circle cx="534" cy="332" r="5" fill="#1c7a4f"/>
+    <circle cx="556" cy="332" r="5" fill="#39d98a"/>
+    <circle cx="512" cy="388" r="5" fill="#f0b429"/>
+    <circle cx="534" cy="388" r="5" fill="#39d98a"/>
+    <circle cx="556" cy="388" r="5" fill="#1c7a4f"/>
+    <circle cx="512" cy="444" r="5" fill="#39d98a"/>
+    <circle cx="534" cy="444" r="5" fill="#39d98a"/>
+    <circle cx="556" cy="444" r="5" fill="#1c7a4f"/>
+    <circle cx="512" cy="500" r="5" fill="#39d98a"/>
+    <circle cx="534" cy="500" r="5" fill="#1c7a4f"/>
+    <circle cx="556" cy="500" r="5" fill="#39d98a"/>
+  </g>
+
+  <!-- cable tray -->
+  <rect x="0" y="188" width="1200" height="16" rx="4" fill="#24483b"/>
+  <g stroke="#3a6a58" stroke-width="3">
+    <path d="M120 204 L120 236"/>
+    <path d="M330 204 L330 250"/>
+    <path d="M585 204 L585 230"/>
+    <path d="M870 204 L870 250"/>
+    <path d="M1080 204 L1080 236"/>
+  </g>
+
+  <!-- caption -->
+  <g font-family="Inter, Arial, sans-serif">
+    <rect x="60" y="700" width="470" height="56" rx="10" fill="#0b1712" opacity="0.72"/>
+    <text x="88" y="736" fill="#e8f3ec" font-size="24" font-weight="600" letter-spacing="1">SERVER ROOM — EAST WING</text>
+  </g>
+</svg>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="Illustration of a close-up of a server rack with status lights and a wisp of smoke">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1b16"/>
+      <stop offset="1" stop-color="#102319"/>
+    </linearGradient>
+    <linearGradient id="unit" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1e4136"/>
+      <stop offset="1" stop-color="#173328"/>
+    </linearGradient>
+    <linearGradient id="smoke2" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#cfdad4" stop-opacity="0"/>
+      <stop offset="1" stop-color="#cfdad4" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#bg2)"/>
+
+  <!-- rack frame -->
+  <rect x="300" y="60" width="600" height="700" rx="14" fill="#123024" stroke="#2f5c4c" stroke-width="3"/>
+  <rect x="330" y="90" width="540" height="640" rx="8" fill="#0e2620"/>
+
+  <!-- server units -->
+  <g>
+    <rect x="352" y="112" width="496" height="72" rx="6" fill="url(#unit)" stroke="#2a5244"/>
+    <rect x="352" y="200" width="496" height="72" rx="6" fill="url(#unit)" stroke="#2a5244"/>
+    <rect x="352" y="288" width="496" height="72" rx="6" fill="url(#unit)" stroke="#2a5244"/>
+    <rect x="352" y="376" width="496" height="72" rx="6" fill="url(#unit)" stroke="#2a5244"/>
+    <rect x="352" y="464" width="496" height="72" rx="6" fill="url(#unit)" stroke="#2a5244"/>
+    <rect x="352" y="552" width="496" height="72" rx="6" fill="url(#unit)" stroke="#2a5244"/>
+  </g>
+
+  <!-- vent slots -->
+  <g stroke="#0b1c15" stroke-width="4" opacity="0.7">
+    <path d="M380 132 L380 164 M396 132 L396 164 M412 132 L412 164 M428 132 L428 164 M444 132 L444 164 M460 132 L460 164"/>
+    <path d="M380 220 L380 252 M396 220 L396 252 M412 220 L412 252 M428 220 L428 252 M444 220 L444 252 M460 220 L460 252"/>
+    <path d="M380 308 L380 340 M396 308 L396 340 M412 308 L412 340 M428 308 L428 340 M444 308 L444 340 M460 308 L460 340"/>
+    <path d="M380 396 L380 428 M396 396 L396 428 M412 396 L412 428 M428 396 L428 428 M444 396 L444 428 M460 396 L460 428"/>
+    <path d="M380 484 L380 516 M396 484 L396 516 M412 484 L412 516 M428 484 L428 516 M444 484 L444 516 M460 484 L460 516"/>
+    <path d="M380 572 L380 604 M396 572 L396 604 M412 572 L412 604 M428 572 L428 604 M444 572 L444 604 M460 572 L460 604"/>
+  </g>
+
+  <!-- status LEDs -->
+  <g>
+    <circle cx="770" cy="148" r="6" fill="#39d98a"/><circle cx="796" cy="148" r="6" fill="#39d98a"/><circle cx="822" cy="148" r="6" fill="#1c7a4f"/>
+    <circle cx="770" cy="236" r="6" fill="#39d98a"/><circle cx="796" cy="236" r="6" fill="#1c7a4f"/><circle cx="822" cy="236" r="6" fill="#f0b429"/>
+    <circle cx="770" cy="324" r="6" fill="#e5484d"/><circle cx="796" cy="324" r="6" fill="#f0b429"/><circle cx="822" cy="324" r="6" fill="#f0b429"/>
+    <circle cx="770" cy="412" r="6" fill="#f0b429"/><circle cx="796" cy="412" r="6" fill="#39d98a"/><circle cx="822" cy="412" r="6" fill="#1c7a4f"/>
+    <circle cx="770" cy="500" r="6" fill="#39d98a"/><circle cx="796" cy="500" r="6" fill="#39d98a"/><circle cx="822" cy="500" r="6" fill="#39d98a"/>
+    <circle cx="770" cy="588" r="6" fill="#1c7a4f"/><circle cx="796" cy="588" r="6" fill="#39d98a"/><circle cx="822" cy="588" r="6" fill="#1c7a4f"/>
+  </g>
+
+  <!-- smoke wisp from hot unit -->
+  <path d="M700 376 C 690 320, 740 300, 716 250 C 700 214, 748 190, 734 150 C 726 126, 752 108, 744 84" fill="none" stroke="url(#smoke2)" stroke-width="26" stroke-linecap="round" opacity="0.8"/>
+  <g fill="#dbe6df" opacity="0.14">
+    <circle cx="720" cy="150" r="46"/>
+    <circle cx="700" cy="230" r="40"/>
+    <circle cx="742" cy="110" r="34"/>
+  </g>
+
+  <!-- warning tag -->
+  <g>
+    <rect x="352" y="654" width="220" height="42" rx="8" fill="#3a1d1d" stroke="#a13a3a"/>
+    <circle cx="376" cy="675" r="9" fill="#e5484d"/>
+    <text x="396" y="682" fill="#f4b7b7" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="600">RACK B-07 · HOT</text>
+  </g>
+
+  <!-- caption -->
+  <g font-family="Inter, Arial, sans-serif">
+    <rect x="60" y="700" width="360" height="52" rx="10" fill="#0b1712" opacity="0.72"/>
+    <text x="86" y="734" fill="#e8f3ec" font-size="22" font-weight="600" letter-spacing="1">RACK B-07 — CLOSE-UP</text>
+  </g>
+</svg>

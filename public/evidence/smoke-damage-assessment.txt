@@ -1,0 +1,27 @@
+SMOKE DAMAGE ASSESSMENT — INC-2026-0148
+East Wing server room — 6 October 2026
+
+Prepared by: Amina Yusuf (Facilities)
+Status: Preliminary — demo document for prototype review
+
+1. SUMMARY
+At approximately 09:52 a fire alarm was triggered in the East Wing server room.
+An odour of burning and light smoke was observed near rack B-07. The affected
+circuit was isolated and the room was ventilated.
+
+2. OBSERVED DAMAGE
+- Rack B-07 (row B): scorching on the top power distribution unit.
+- Two patch cables (positions 14 and 15) show heat damage to the jacket.
+- Adjacent racks B-06 and B-08 present no visible damage.
+
+3. ACTIONS TAKEN
+- Power to rack B-07 isolated at 10:06.
+- Fire watch maintained for 60 minutes; no further smoke observed.
+- Vendor engaged for a full electrical inspection.
+
+4. RECOMMENDATION
+Replace the rack B-07 PDU and affected cabling before returning the rack to
+service. Re-test the fire panel loop after the replacement.
+
+NOTE: This is illustrative sample content created for the ICE 2.0 prototype.
+It does not describe a real incident.

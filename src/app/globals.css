@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f8f5;
+  --page-bg: #f4f8f5;
+  --foreground: #18251e;
+  --muted: #f1f5f3;
+  --muted-foreground: #64776d;
+  --panel: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #18251e;
+  --popover: #ffffff;
+  --popover-foreground: #18251e;
+  --primary: #087443;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f3;
+  --secondary-foreground: #18251e;
+  --accent: #e8f6ed;
+  --accent-foreground: #087443;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #dde8e1;
+  --input: #dde8e1;
+  --ring: #087443;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #dc2626;
+  --info: #3b82f6;
+  --primary-strong: #10935a;
+  --primary-soft: #e8f6ed;
+  --primary-softest: #f4faf7;
+  --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.04);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-page-bg: var(--page-bg);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-panel: var(--panel);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+  background: var(--page-bg);
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background: var(--page-bg);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(8, 116, 67, 0.18);
 }
