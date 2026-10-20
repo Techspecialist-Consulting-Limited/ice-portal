@@ -55,6 +55,7 @@ import {
   isReviewRequired,
 } from "../incidents/incident-status";
 import { IncidentPortalShell } from "../incidents/incident-shell";
+import { useCurrentUser } from "../auth/current-user-provider";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -107,6 +108,12 @@ const MONTHS: Record<string, number> = {
   Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
 };
 
+function formatPercent(value: number, total: number) {
+  if (!total) return "0%";
+  const percent = (value / total) * 100;
+  return `${Number.isInteger(percent) ? percent : percent.toFixed(1)}%`;
+}
+
 function parseReported(value: string): number | null {
   const datePart = value.split("·")[0]?.trim() ?? "";
   const match = datePart.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
@@ -123,12 +130,6 @@ function periodCutoff(period: string, now: number | null): number | null {
   if (period === "7d") return now - 7 * 24 * 60 * 60 * 1000;
   if (period === "30d") return now - 30 * 24 * 60 * 60 * 1000;
   return null;
-}
-
-function formatPercent(value: number, total: number) {
-  if (!total) return "0%";
-  const percent = (value / total) * 100;
-  return `${Number.isInteger(percent) ? percent : percent.toFixed(1)}%`;
 }
 
 const toneIconClasses: Record<"red" | "amber" | "green" | "blue", string> = {
@@ -230,6 +231,7 @@ function AlertSeverityIcon({ priority }: { priority: IncidentItem["priority"] })
 }
 
 export default function RiskDashboardPage() {
+  const currentUser = useCurrentUser();
   const incidents = useSyncExternalStore(
     subscribeToIncidentState,
     getIncidentStateSnapshot,
@@ -254,6 +256,7 @@ export default function RiskDashboardPage() {
   const [category, setCategory] = useState("all");
   const [priority, setPriority] = useState("all");
   const [location, setLocation] = useState("all");
+  const [recentIncidentPage, setRecentIncidentPage] = useState(1);
   // Resolve "now" once on the client only. On the server this stays null so the
   // prerender never depends on an unstable value; the default period is "all"
   // (no cutoff) so the first render is identical on both sides.
@@ -278,6 +281,7 @@ export default function RiskDashboardPage() {
   const hasActiveFilters = period !== "all" || category !== "all" || priority !== "all" || location !== "all";
 
   const resetFilters = () => {
+    setRecentIncidentPage(1);
     setPeriod("all");
     setCategory("all");
     setPriority("all");
@@ -315,7 +319,21 @@ export default function RiskDashboardPage() {
 
   const maxStatusCount = Math.max(1, ...INCIDENT_STATUS_ORDER.map((status) => statusCounts[status] ?? 0));
   const reviewRequiredCount = filteredIncidents.filter((incident) => isReviewRequired(incident.status)).length;
-  const recentIncidents = filteredIncidents.slice(0, 5);
+  const recentIncidentPageSize = 5;
+  const recentIncidentPageCount = Math.max(1, Math.ceil(filteredIncidents.length / recentIncidentPageSize));
+  const currentRecentIncidentPage = Math.min(recentIncidentPage, recentIncidentPageCount);
+  const firstVisibleRecentIncidentPage = Math.min(
+    Math.max(1, currentRecentIncidentPage - 1),
+    Math.max(1, recentIncidentPageCount - 2),
+  );
+  const visibleRecentIncidentPages = Array.from(
+    { length: Math.min(3, recentIncidentPageCount) },
+    (_, index) => firstVisibleRecentIncidentPage + index,
+  );
+  const recentIncidents = filteredIncidents.slice(
+    (currentRecentIncidentPage - 1) * recentIncidentPageSize,
+    currentRecentIncidentPage * recentIncidentPageSize,
+  );
 
   // Priority also applies to alert activity (alerts carry the same priority scale).
   const scopedAlerts = priority === "all" ? alertList : alertList.filter((alert) => alert.priority === priority);
@@ -327,24 +345,14 @@ export default function RiskDashboardPage() {
   const awaitingAlertCount = countAlertsAwaitingAcknowledgement(activeAlerts);
   const activeCriticalAlertCount = countActiveCriticalAlerts(scopedAlerts);
   const ackSummary = summarizeAlertAcknowledgement(activeAlerts);
+  const ackPercent =
+    ackSummary.completionRate === null ? "Not available" : formatPercent(ackSummary.acknowledged, ackSummary.targeted);
 
   const alertBreakdown = (["Critical", "Advisory", "Informational"] as const)
     .map((level) => ({ level, count: activeAlerts.filter((alert) => alert.priority === level).length }))
     .filter((entry) => entry.count > 0)
     .map((entry) => `${entry.count} ${entry.level.toLowerCase()}`)
     .join(" · ");
-
-  // Engagement is derived from the same active, acknowledgement-required alerts
-  // the Alerts page shows — there is no separate engagement fixture.
-  const ackPercent =
-    ackSummary.completionRate === null ? "Not available" : formatPercent(ackSummary.acknowledged, ackSummary.targeted);
-  const engagementRows =
-    ackSummary.completionRate === null
-      ? []
-      : [
-          { label: "Acknowledged", value: ackSummary.acknowledged, total: ackSummary.targeted },
-          { label: "Outstanding", value: ackSummary.outstanding, total: ackSummary.targeted },
-        ];
 
   const priorityRank = { Critical: 0, Advisory: 1, Informational: 2 } as const;
   const attentionAlerts = [...activeAlerts]
@@ -368,7 +376,7 @@ export default function RiskDashboardPage() {
   return (
     <IncidentPortalShell
       activeNav="dashboard"
-      eyebrow="Welcome back, Mike"
+      eyebrow={`Welcome back, ${currentUser.name}`}
       pageTitle="Risk dashboard"
       titleClassName="text-[32px] leading-[38px]"
       description="Monitor emerging risks, review incidents and keep your people informed."
@@ -392,10 +400,10 @@ export default function RiskDashboardPage() {
       }
     >
       <div className="grid gap-3 rounded-[16px] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-soft)] md:grid-cols-2 xl:grid-cols-4">
-        <FilterControl label="Reporting period" icon={CalendarDays} value={period} options={PERIOD_OPTIONS} onChange={setPeriod} />
-        <FilterControl label="Category" icon={ClipboardList} value={category} options={categoryOptions} onChange={setCategory} />
-        <FilterControl label="Priority" icon={TriangleAlert} value={priority} options={priorityOptions} onChange={setPriority} />
-        <FilterControl label="Location" icon={MapPin} value={location} options={locationOptions} onChange={setLocation} />
+        <FilterControl label="Reporting period" icon={CalendarDays} value={period} options={PERIOD_OPTIONS} onChange={(value) => { setPeriod(value); setRecentIncidentPage(1); }} />
+        <FilterControl label="Category" icon={ClipboardList} value={category} options={categoryOptions} onChange={(value) => { setCategory(value); setRecentIncidentPage(1); }} />
+        <FilterControl label="Priority" icon={TriangleAlert} value={priority} options={priorityOptions} onChange={(value) => { setPriority(value); setRecentIncidentPage(1); }} />
+        <FilterControl label="Location" icon={MapPin} value={location} options={locationOptions} onChange={(value) => { setLocation(value); setRecentIncidentPage(1); }} />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[12px] text-[var(--muted-foreground)]">
@@ -408,6 +416,14 @@ export default function RiskDashboardPage() {
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          icon={ClipboardList}
+          tone="blue"
+          title="Active incidents"
+          value={filteredIncidents.length}
+          subtitle={`${reviewRequiredCount} submitted need review`}
+          href={queueHref({ ...filters, scope: "active" })}
+        />
         <KpiCard
           icon={TriangleAlert}
           tone="red"
@@ -432,92 +448,6 @@ export default function RiskDashboardPage() {
           subtitle={!ackSummary.available ? "Recipient totals unavailable" : `${ackSummary.acknowledged} of ${ackSummary.targeted} recipients`}
           href="/reports"
         />
-        <KpiCard
-          icon={ClipboardList}
-          tone="blue"
-          title="Active incidents"
-          value={filteredIncidents.length}
-          subtitle={`${reviewRequiredCount} submitted need review`}
-          href={queueHref({ ...filters, scope: "active" })}
-        />
-      </div>
-
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-        <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h2 className="text-[16px] font-semibold text-[var(--foreground)]">Alerts requiring attention</h2>
-              <span className="rounded-full bg-[#fee2e2] px-2.5 py-1 text-[11px] font-medium text-[#991b1b]">
-                {activeCriticalAlertCount} critical · {awaitingAlertCount} pending acknowledgement
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <PanelLink href="/alerts/escalations">Escalation history</PanelLink>
-              <PanelLink href="/alerts">View all alerts</PanelLink>
-            </div>
-          </div>
-
-          {attentionAlerts.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-[var(--border)] p-4 text-[13px] text-[var(--muted-foreground)]">
-              No alerts match the current filters.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {attentionAlerts.map((alert) => (
-                <div key={alert.id} className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-white p-3.5 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <AlertSeverityIcon priority={alert.priority} />
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <PriorityBadge priority={alert.priority} />
-                        <AlertStatusBadge status={alert.status} />
-                      </div>
-                      <div className="mt-1.5 truncate text-[14px] font-medium text-[var(--foreground)]">{alert.title}</div>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)]">
-                        <MapPin className="h-3.5 w-3.5" strokeWidth={1.9} />
-                        {alert.location} · {formatAlertTimestamp(alert.updatedAt)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <PanelLink href={`/alerts/${encodeURIComponent(alert.id)}`}>View alert</PanelLink>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
-          <div className="mb-1 flex items-center justify-between gap-3">
-            <h2 className="text-[16px] font-semibold text-[var(--foreground)]">Incident status</h2>
-            <PanelLink href={queueHref(filters)}>View queue</PanelLink>
-          </div>
-          <p className="mb-4 text-[12px] text-[var(--muted-foreground)]">
-            {filteredIncidents.length} active {filteredIncidents.length === 1 ? "incident" : "incidents"} · by current workflow stage
-          </p>
-
-          <div className="space-y-3">
-            {INCIDENT_STATUS_ORDER.map((status) => {
-              const count = statusCounts[status] ?? 0;
-              const width = maxStatusCount > 0 ? (count / maxStatusCount) * 100 : 0;
-              return (
-                <Link
-                  key={status}
-                  href={queueHref({ status, ...filters })}
-                  className="block rounded-lg px-1 py-1 transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                >
-                  <div className="flex items-center justify-between gap-2 text-[13px] text-[var(--foreground)]">
-                    <span>{status}</span>
-                    <span className="font-medium">{count}</span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]">
-                    <div className="h-full rounded-full" style={{ width: `${width}%`, backgroundColor: incidentStatusBarColor(status) }} />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
       </div>
 
       <section className="mt-5 rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
@@ -588,17 +518,99 @@ export default function RiskDashboardPage() {
               </table>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[12px] text-[var(--muted-foreground)]">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--muted-foreground)]">
               <span>
                 Showing {recentIncidents.length} of {filteredIncidents.length} active {filteredIncidents.length === 1 ? "incident" : "incidents"}
               </span>
-              <PanelLink href={queueHref(filters)}>View incident queue</PanelLink>
+              {recentIncidentPageCount > 1 && (
+                <nav className="flex items-center gap-1" aria-label="Recent incident pages">
+                  <button
+                    type="button"
+                    onClick={() => setRecentIncidentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentRecentIncidentPage === 1}
+                    aria-label="Previous page"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    &lt;
+                  </button>
+                  {visibleRecentIncidentPages.map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setRecentIncidentPage(pageNumber)}
+                      aria-current={pageNumber === currentRecentIncidentPage ? "page" : undefined}
+                      aria-label={`Page ${pageNumber}`}
+                      className={cn(
+                        "flex h-9 min-w-9 items-center justify-center rounded-lg border px-2",
+                        pageNumber === currentRecentIncidentPage
+                          ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                          : "border-[var(--border)] bg-white text-[var(--foreground)]",
+                      )}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setRecentIncidentPage((page) => Math.min(recentIncidentPageCount, page + 1))}
+                    disabled={currentRecentIncidentPage === recentIncidentPageCount}
+                    aria-label="Next page"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    &gt;
+                  </button>
+                </nav>
+              )}
             </div>
           </>
         )}
       </section>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
+        <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-[16px] font-semibold text-[var(--foreground)]">Alerts requiring attention</h2>
+              <span className="rounded-full bg-[#fee2e2] px-2.5 py-1 text-[11px] font-medium text-[#991b1b]">
+                {activeCriticalAlertCount} critical · {awaitingAlertCount} pending acknowledgement
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <PanelLink href="/alerts/escalations">Escalation history</PanelLink>
+              <PanelLink href="/alerts">View all alerts</PanelLink>
+            </div>
+          </div>
+
+          {attentionAlerts.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-[var(--border)] p-4 text-[13px] text-[var(--muted-foreground)]">
+              No alerts match the current filters.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {attentionAlerts.map((alert) => (
+                <div key={alert.id} className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-white p-3.5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <AlertSeverityIcon priority={alert.priority} />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <PriorityBadge priority={alert.priority} />
+                        <AlertStatusBadge status={alert.status} />
+                      </div>
+                      <div className="mt-1.5 truncate text-[14px] font-medium text-[var(--foreground)]">{alert.title}</div>
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)]">
+                        <MapPin className="h-3.5 w-3.5" strokeWidth={1.9} />
+                        {alert.location} · {formatAlertTimestamp(alert.updatedAt)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <PanelLink href={`/alerts/${encodeURIComponent(alert.id)}`}>View alert</PanelLink>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section className="min-w-0 rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
@@ -639,53 +651,39 @@ export default function RiskDashboardPage() {
             </div>
           )}
         </section>
-
-        <section className="min-w-0 rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-[16px] font-semibold text-[var(--foreground)]">Alert engagement</h2>
-              <p className="mt-1 text-[12px] text-[var(--muted-foreground)]">
-                Across {activeAlertCount} active {activeAlertCount === 1 ? "alert" : "alerts"} · {!ackSummary.available ? "recipient totals unavailable" : `${ackSummary.targeted} targeted recipients`}
-              </p>
-            </div>
-            <PanelLink href="/reports">View engagement</PanelLink>
-          </div>
-
-          {ackSummary.requiredCount === 0 ? (
-            <p className="rounded-xl border border-dashed border-[var(--border)] p-4 text-[13px] text-[var(--muted-foreground)]">
-              No active alerts require acknowledgement.
-            </p>
-          ) : engagementRows.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-[var(--border)] p-4 text-[13px] text-[var(--muted-foreground)]">
-              Acknowledgement totals are unavailable for one or more active alerts.
-            </p>
-          ) : (
-          <div className="space-y-4">
-            {engagementRows.map((item) => (
-              <div key={item.label}>
-                <div className="mb-2 flex items-center justify-between gap-3 text-[13px] text-[var(--foreground)]">
-                  <span>{item.label}</span>
-                  <span className="font-medium">
-                    {item.value} / {item.total} · {formatPercent(item.value, item.total)}
-                  </span>
-                </div>
-                <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--muted)]">
-                  <div
-                    className={cn("h-full rounded-full", item.label === "Outstanding" ? "bg-[#d97706]" : "bg-[var(--primary)]")}
-                    style={{ width: `${formatPercentValue(item.value, item.total)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          )}
-        </section>
       </div>
+
+      <section className="mt-5 rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <h2 className="text-[16px] font-semibold text-[var(--foreground)]">Incident status</h2>
+          <PanelLink href={queueHref(filters)}>View queue</PanelLink>
+        </div>
+        <p className="mb-4 text-[12px] text-[var(--muted-foreground)]">
+          {filteredIncidents.length} active {filteredIncidents.length === 1 ? "incident" : "incidents"} · by current workflow stage
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+          {INCIDENT_STATUS_ORDER.map((status) => {
+            const count = statusCounts[status] ?? 0;
+            const width = maxStatusCount > 0 ? (count / maxStatusCount) * 100 : 0;
+            return (
+              <Link
+                key={status}
+                href={queueHref({ status, ...filters })}
+                className="block rounded-lg px-1 py-1 transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+              >
+                <div className="flex items-center justify-between gap-2 text-[13px] text-[var(--foreground)]">
+                  <span>{status}</span>
+                  <span className="font-medium">{count}</span>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]">
+                  <div className="h-full rounded-full" style={{ width: `${width}%`, backgroundColor: incidentStatusBarColor(status) }} />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
     </IncidentPortalShell>
   );
-}
-
-function formatPercentValue(value: number, total: number) {
-  if (!total) return 0;
-  return (value / total) * 100;
 }

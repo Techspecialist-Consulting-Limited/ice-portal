@@ -21,7 +21,7 @@ import {
 } from "../../incident-state";
 import { PriorityBadge, StatusBadge } from "../../incident-status";
 import { IncidentPortalShell } from "../../incident-shell";
-import { CURRENT_USER } from "../../../auth/current-user";
+import { CURRENT_USER, currentActorLabel } from "../../../auth/current-user";
 
 export type ReviewDecision = "verify" | "reject";
 
@@ -204,7 +204,7 @@ export function ReviewPageContent({
           ...(current.timeline ?? []),
           {
             title: isVerify ? "Incident verified" : "Report rejected",
-            detail: `${trimmedNote} — Decision recorded by ${REVIEWER} (Risk Administrator).`,
+            detail: `${trimmedNote} — Decision recorded by ${currentActorLabel()}.`,
             time: formatTimestamp(new Date()),
           },
         ],

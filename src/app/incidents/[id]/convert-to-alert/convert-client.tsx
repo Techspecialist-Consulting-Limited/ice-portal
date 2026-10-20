@@ -40,8 +40,8 @@ import {
   subscribeToAlertState,
 } from "@/app/alerts/alert-state";
 import { AlertStatusBadge } from "@/app/alerts/alert-status";
+import { currentActorLabel } from "@/app/auth/current-user";
 import {
-  ALERT_ADMINISTRATOR,
   ALERT_PRIORITY_OPTIONS,
   ALERT_SHAREABILITY_OPTIONS,
   MAX_ALERT_SUMMARY,
@@ -408,7 +408,7 @@ export function ConvertToAlertContent({ incidentId }: { incidentId: string }) {
           ...(current.timeline ?? []),
           {
             title: notificationType === "Alert" ? "Alert draft created" : "Advisory draft created",
-            detail: `${saved.id} was prepared from this incident by ${ALERT_ADMINISTRATOR} (Risk Administrator). The draft is not published or broadcast.`,
+            detail: `${saved.id} was prepared from this incident by ${currentActorLabel()}. The draft is not published or broadcast.`,
             time: formatTimestamp(new Date()),
           },
         ],

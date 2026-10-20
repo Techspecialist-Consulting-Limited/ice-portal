@@ -1,4 +1,4 @@
-import type { IncidentItem, IncidentStatus } from "@/app/dashboard/mock-data";
+import type { IncidentItem, IncidentStatus, IncidentType } from "@/app/dashboard/mock-data";
 
 export type IncidentTone = "danger" | "warning" | "info" | "success" | "neutral" | "primary";
 export type IncidentPriority = IncidentItem["priority"];
@@ -23,12 +23,22 @@ const priorityToneMap: Record<IncidentPriority, IncidentTone> = {
   Informational: "info",
 };
 
+const incidentTypeToneMap: Record<IncidentType, IncidentTone> = {
+  SOS: "danger",
+  "Emergency Report": "danger",
+  "Incident Report": "neutral",
+};
+
 export function incidentStatusTone(status: IncidentStatus): IncidentTone {
   return statusToneMap[status] ?? "neutral";
 }
 
 export function incidentPriorityTone(priority: IncidentPriority): IncidentTone {
   return priorityToneMap[priority] ?? "info";
+}
+
+export function incidentTypeTone(type: IncidentType): IncidentTone {
+  return incidentTypeToneMap[type] ?? "neutral";
 }
 
 const toneClassMap: Record<IncidentTone, string> = {
@@ -58,6 +68,11 @@ export function StatusBadge({ status, className }: { status: IncidentStatus; cla
 
 export function PriorityBadge({ priority, className }: { priority: IncidentPriority; className?: string }) {
   return <ToneBadge label={priority} tone={incidentPriorityTone(priority)} className={className} />;
+}
+
+export function IncidentTypeBadge({ incidentType, className }: { incidentType?: IncidentType; className?: string }) {
+  if (!incidentType) return null;
+  return <ToneBadge label={incidentType} tone={incidentTypeTone(incidentType)} className={className} />;
 }
 
 // The workflow stages shown in the dashboard "Incident status" panel, in order.

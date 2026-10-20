@@ -34,6 +34,7 @@ import {
 import { PriorityBadge, StatusBadge, ToneBadge } from "../../incident-status";
 import { IncidentPortalShell } from "../../incident-shell";
 import { currentActorLabel } from "@/app/auth/current-user";
+import { escalationBlockReason } from "../../incident-workflow";
 
 type TargetType = "responder" | "team";
 
@@ -60,14 +61,6 @@ function initials(name: string) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() ?? "")
     .join("");
-}
-
-function escalationBlockReason(status: IncidentItem["status"]): string | null {
-  if (status === "Escalated") return "This incident is already escalated.";
-  if (status === "Broadcast") return "Escalation is not available once an incident has been broadcast.";
-  if (status === "Rejected") return "Escalation is not available for a rejected report.";
-  if (status === "Resolved" || status === "Closed") return "Escalation is not available for a resolved or closed incident.";
-  return null;
 }
 
 function assignmentSignature(incident: IncidentItem) {

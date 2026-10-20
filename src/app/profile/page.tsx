@@ -4,12 +4,12 @@ import { IncidentPortalShell } from "../incidents/incident-shell";
 import { ToneBadge } from "../incidents/incident-status";
 import { formatAlertTimestamp } from "../alerts/alert-status";
 import {
-  CURRENT_USER,
   PROFILE_NOT_AVAILABLE,
   PROFILE_NOT_PROVIDED,
   initialsFromName,
   type CurrentUser,
 } from "../auth/current-user";
+import { getSessionUser, requireRiskAdministrator } from "../auth/role-access";
 
 function ProfileField({
   icon: Icon,
@@ -54,8 +54,9 @@ function Avatar({ user }: { user: CurrentUser }) {
   );
 }
 
-export default function ProfilePage() {
-  const user = CURRENT_USER;
+export default async function ProfilePage() {
+  await requireRiskAdministrator("/responder/profile");
+  const user = await getSessionUser();
   const lastLogin = user.lastLoginAt ? formatAlertTimestamp(user.lastLoginAt) : PROFILE_NOT_AVAILABLE;
 
   return (
@@ -132,7 +133,7 @@ export default function ProfilePage() {
           </h2>
           <dl className="mt-2 divide-y divide-[var(--border)]">
             <ProfileField icon={ShieldCheck} label="Assigned role" value={user.role || PROFILE_NOT_PROVIDED} />
-            <ProfileField icon={MapPin} label="Current workspace" value={user.role || PROFILE_NOT_PROVIDED} />
+            <ProfileField icon={MapPin} label="Current workspace" value="Risk Administrator portal" />
           </dl>
           <p className="mt-3 border-t border-[var(--border)] pt-3 text-[12px] leading-5 text-[var(--muted-foreground)]">
             Your role and workspace are assigned by an administrator. They cannot be changed from this page.

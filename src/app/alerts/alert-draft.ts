@@ -7,7 +7,7 @@ import type {
   AlertPriority,
   AlertShareability,
 } from "@/app/dashboard/mock-data";
-import { CURRENT_USER } from "@/app/auth/current-user";
+import { CURRENT_USER, currentActorLabel } from "@/app/auth/current-user";
 import { createAlert, getNextAlertId, updateAlert } from "./alert-state";
 import { formatAlertTimestamp } from "./alert-status";
 
@@ -44,6 +44,9 @@ export type AlertDraft = {
 
 export type AlertDraftErrors = Partial<Record<keyof AlertDraftFields, string>>;
 
+// Audit entries carry the full actor label ("Mike Kanu (Risk Administrator)")
+// built from the signed-in user's own record, so a role can never be stamped
+// onto a name that doesn't hold it.
 export const ALERT_ADMINISTRATOR = CURRENT_USER.name;
 
 export const ALERT_PRIORITY_OPTIONS: AlertPriority[] = ["Critical", "Advisory", "Informational"];
@@ -236,8 +239,8 @@ function buildHistory(
       title: status === "Published" ? "Alert published" : "Draft created",
       detail:
         status === "Published"
-          ? `Published by ${ALERT_ADMINISTRATOR} (Risk Administrator).`
-          : `Draft created by ${ALERT_ADMINISTRATOR} (Risk Administrator). Not yet published.`,
+          ? `Published by ${currentActorLabel()}.`
+          : `Draft created by ${currentActorLabel()}. Not yet published.`,
       time: stamp,
     });
     return entries;
@@ -246,13 +249,13 @@ function buildHistory(
   const previousStatus = existing?.status;
   entries.push({
     title: "Alert updated",
-    detail: `Updated by ${ALERT_ADMINISTRATOR} (Risk Administrator).`,
+    detail: `Updated by ${currentActorLabel()}.`,
     time: stamp,
   });
   if (status === "Published" && previousStatus === "Draft") {
     entries.push({
       title: "Alert published",
-      detail: `Published by ${ALERT_ADMINISTRATOR} (Risk Administrator).`,
+      detail: `Published by ${currentActorLabel()}.`,
       time: stamp,
     });
   }

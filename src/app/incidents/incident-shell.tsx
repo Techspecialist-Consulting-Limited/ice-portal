@@ -18,7 +18,8 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { CURRENT_USER, initialsFromName } from "../auth/current-user";
+import { useCurrentUser } from "../auth/current-user-provider";
+import { SessionRoleSwitcher } from "../auth/session-role-switcher";
 import {
   getAlertStateServerSnapshot,
   getAlertStateSnapshot,
@@ -272,6 +273,7 @@ export function IncidentPortalShell({
   titleClassName?: string;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const currentUser = useCurrentUser();
 
   return (
     <main className="h-dvh w-full overflow-hidden bg-[var(--page-bg)] text-[var(--foreground)]">
@@ -289,7 +291,7 @@ export function IncidentPortalShell({
         <div className="px-3 pt-3">
           <div className="mb-1.5 text-[9px] font-medium uppercase tracking-[0.18em] text-[#64746C]">Current workspace</div>
           <div className="rounded-lg border border-[#E2EAE5] bg-[#F1F5F3] px-2.5 py-1.5">
-            <span className="block truncate text-[11px] font-medium leading-4 text-[#64746C]">{CURRENT_USER.role}</span>
+            <span className="block truncate text-[11px] font-medium leading-4 text-[#64746C]">{currentUser.role}</span>
           </div>
         </div>
 
@@ -328,16 +330,7 @@ export function IncidentPortalShell({
             <ExternalLink aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#64746C]" strokeWidth={1.8} />
           </Link>
 
-          <div className="mt-5 flex min-w-0 items-center gap-3">
-            <div aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#DDF2E7] text-[12px] font-semibold text-[#087443]">
-              {initialsFromName(CURRENT_USER.name) || "—"}
-            </div>
-
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-semibold leading-[17px] text-[#18251E]">{CURRENT_USER.name}</p>
-              <p className="truncate text-[11px] leading-[16px] text-[#64746C]">{CURRENT_USER.role}</p>
-            </div>
-          </div>
+          <SessionRoleSwitcher />
 
           <button type="button" disabled title="Sign out is not available yet." className="mt-3 flex min-h-8 w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-1.5 text-left text-[12px] font-medium text-[#718178] opacity-70">
             <LogOut aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />

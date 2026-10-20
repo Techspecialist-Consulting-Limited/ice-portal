@@ -12,12 +12,20 @@
 // rest of the portal depends on. Until then treat it as a development fixture,
 // not evidence of a live directory connection.
 
+// Canonical role strings. Every guard and audit label compares against these
+// constants, so a role can only be renamed in one place and cannot drift into
+// a mismatched literal elsewhere.
+export type UserRole = "Risk Administrator" | "Incident Responder";
+
+export const RISK_ADMINISTRATOR: UserRole = "Risk Administrator";
+export const INCIDENT_RESPONDER: UserRole = "Incident Responder";
+
 export type CurrentUser = {
   id: string;
   name: string;
   email: string;
-  /** Assigned access role, e.g. "Risk Administrator". */
-  role: string;
+  /** Assigned access role; always one of the canonical `UserRole` values. */
+  role: UserRole;
   /** Organizational attributes; optional because the directory owns them. */
   department?: string;
   businessUnit?: string;
@@ -36,19 +44,41 @@ export type CurrentUser = {
 export const PROFILE_NOT_AVAILABLE = "Not available";
 export const PROFILE_NOT_PROVIDED = "Not provided";
 
-// Development fixture for the current session's identity. The department is
-// consistent with the existing "Risk & Compliance" risk-register owner already
-// used by the Security Feed sources. `lastLoginAt` is deliberately absent: the
-// prototype has no login/session tracking, so no sign-in time is known and none
-// is invented.
-export const CURRENT_USER: CurrentUser = {
-  id: "USR-0001",
-  name: "Mike Kanu",
-  email: "mike.kanu@nsia.com",
-  role: "Risk Administrator",
-  department: "Risk & Compliance",
-  // No lastLoginAt, no status: unknown rather than made up.
-};
+// The portal's two identities, as complete records. Both users live here so
+// that switching the signed-in user never means editing a record in place —
+// which is how the roles previously got mixed up (a responder test session
+// overwrote the administrator fixture, and audit trails then stamped
+// "(Risk Administrator)" next to the responder's name).
+export const USERS = {
+  mikeKanu: {
+    id: "USR-0001",
+    name: "Mike Kanu",
+    email: "mike.kanu@nsia.com",
+    role: RISK_ADMINISTRATOR,
+    department: "Risk & Compliance",
+    // No lastLoginAt, no status: unknown rather than made up.
+  },
+  abbasTaofeeq: {
+    id: "RSP-03",
+    name: "Abbas Taofeeq",
+    email: PROFILE_NOT_PROVIDED,
+    role: INCIDENT_RESPONDER,
+  },
+} as const satisfies Record<string, CurrentUser>;
+
+// Default identity for a fresh browser. The profile-name role switcher stores
+// a selected user ID in a cookie so the server and client resolve the same
+// identity on subsequent requests.
+const SESSION_USER_ID = USERS.mikeKanu.id;
+
+export const CURRENT_USER: CurrentUser =
+  Object.values(USERS).find((user) => user.id === SESSION_USER_ID) ?? USERS.mikeKanu;
+
+export const SESSION_USER_COOKIE = "ice-portal-user";
+
+export function getUserById(id: string | undefined): CurrentUser {
+  return Object.values(USERS).find((user) => user.id === id) ?? CURRENT_USER;
+}
 
 // Safe initials for the avatar fallback. Handles one word, several words and
 // empty/missing names without throwing or producing an empty badge.
@@ -63,5 +93,12 @@ export function initialsFromName(name?: string): string {
 // source, so recorded action history can never disagree with the signed-in
 // identity, and pages cannot hard-code their own copy of it.
 export function currentActorLabel(): string {
-  return `${CURRENT_USER.name} (${CURRENT_USER.role})`;
+  const userId = typeof document === "undefined"
+    ? undefined
+    : document.cookie
+      .split("; ")
+      .find((cookie) => cookie.startsWith(`${SESSION_USER_COOKIE}=`))
+      ?.slice(SESSION_USER_COOKIE.length + 1);
+  const user = getUserById(userId);
+  return `${user.name} (${user.role})`;
 }

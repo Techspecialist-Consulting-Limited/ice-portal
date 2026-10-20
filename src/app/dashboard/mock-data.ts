@@ -144,6 +144,8 @@ export type IncidentStatus =
   | "Resolved"
   | "Closed";
 
+export type IncidentType = "SOS" | "Emergency Report" | "Incident Report";
+
 export type IncidentReviewStatus = "Not started" | "Pending" | "In progress" | "Completed";
 
 export type IncidentEvidenceKind = "image" | "video" | "document";
@@ -200,6 +202,7 @@ export type IncidentItem = {
   location: string;
   priority: "Critical" | "Advisory" | "Informational";
   status: IncidentStatus;
+  incidentType?: IncidentType;
   reported: string;
   reviewStatus: IncidentReviewStatus;
   actionLabel: string;
@@ -507,7 +510,7 @@ export const demoIncidentEvidence: IncidentEvidence[] = [
 export const demoResponders: IncidentResponder[] = [
   { id: "RSP-01", name: "Amina Hassan", role: "Fire Safety Officer", team: "Emergency Response", department: "Facilities Department" },
   { id: "RSP-02", name: "Kola Adebayo", role: "Facilities Engineer", team: "Facilities Response", department: "Facilities Department" },
-  { id: "RSP-03", name: "Priya Nwosu", role: "Security Supervisor", team: "Security Response", department: "Security Department" },
+  { id: "RSP-03", name: "Abbas Taofeeq", role: "Incident Responder", team: "Security Response", department: "Security Department" },
   { id: "RSP-04", name: "Samuel Okafor", role: "Medical Officer", team: "Medical Response", department: "Medical Services" },
   { id: "RSP-05", name: "Ngozi Eze", role: "ICT Infrastructure Lead", team: "ICT Response", department: "ICT Department" },
   { id: "RSP-06", name: "Ibrahim Musa", role: "Operations Coordinator", team: "Emergency Response", department: "Operations" },
@@ -576,6 +579,11 @@ export const incidents: IncidentItem[] = [
     reported: "06 Oct 2026 · 09:41",
     reviewStatus: "Completed",
     actionLabel: "Review",
+    assignment: {
+      assignee: "Abbas Taofeeq",
+      assigneeId: "RSP-03",
+      assigneeRole: "Incident Responder",
+    },
   },
   {
     id: "INC-2026-0144",

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { Suspense } from "react";
+import { CurrentUserBoundary } from "./auth/current-user-boundary";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ICE 2.0 Risk Dashboard",
-  description: "Risk Administrator dashboard for the ICE 2.0 NSIA admin portal",
+  title: "ICE 2.0 Incident Management Portal",
+  description: "NSIA incident management and response portal",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -23,7 +25,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Suspense fallback={<div className="min-h-dvh bg-[var(--page-bg)]" />}>
+          <CurrentUserBoundary>{children}</CurrentUserBoundary>
+        </Suspense>
+      </body>
     </html>
   );
 }

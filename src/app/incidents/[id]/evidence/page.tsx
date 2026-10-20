@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -28,6 +28,10 @@ import {
 } from "../../incident-state";
 import { IncidentPortalShell } from "../../incident-shell";
 import { PriorityBadge, StatusBadge } from "../../incident-status";
+import { ResponderPortalShell } from "../../../responder/responder-shell";
+import { canResponderAccessIncident } from "../../../responder/responder-access";
+import { INCIDENT_RESPONDER } from "../../../auth/current-user";
+import { useCurrentUser } from "../../../auth/current-user-provider";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -144,13 +148,40 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+type EvidenceShellProps = {
+  children: React.ReactNode;
+  breadcrumbs: React.ReactNode;
+  pageTitle: string;
+  description?: React.ReactNode;
+  actions?: React.ReactNode;
+};
+
+function EvidenceShell(props: EvidenceShellProps) {
+  const pathname = usePathname();
+  if (pathname.startsWith("/responder/incidents/")) {
+    return <ResponderPortalShell activeNav="assigned" {...props} />;
+  }
+  return <IncidentPortalShell {...props} />;
+}
+
 function EvidencePageContent() {
+  const currentUser = useCurrentUser();
   const params = useParams();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isResponderView = pathname.startsWith("/responder/incidents/");
   const incidentId = Array.isArray(params.id) ? params.id[0] : params.id;
   const incidents = useSyncExternalStore(subscribeToIncidentState, getIncidentStateSnapshot, getIncidentStateServerSnapshot);
   const incident = incidents.find((item) => item.id === String(incidentId ?? ""));
+  const requestedReturnTo = searchParams.get("returnTo");
+  const incidentHref = isResponderView
+    ? requestedReturnTo?.startsWith("/responder/incidents/")
+      ? requestedReturnTo
+      : `/responder/incidents/${encodeURIComponent(String(incidentId ?? ""))}`
+    : `/incidents/${encodeURIComponent(String(incidentId ?? ""))}`;
+  const queueHref = isResponderView ? "/responder/incidents" : "/incidents";
 
-  const evidence = incident?.evidence ?? [];
+  const evidence = (incident?.evidence ?? []).filter((item) => !isResponderView || !item.demo);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lastIncidentId, setLastIncidentId] = useState(incidentId);
 
@@ -190,12 +221,12 @@ function EvidencePageContent() {
 
   if (!incident) {
     return (
-      <IncidentPortalShell
+      <EvidenceShell
         breadcrumbs={
           <>
-            <Link href="/">Home</Link>
+            <Link href={isResponderView ? "/responder/dashboard" : "/"}>{isResponderView ? "Responder Dashboard" : "Home"}</Link>
             <span>/</span>
-            <Link href="/incidents">Incidents</Link>
+            <Link href={queueHref}>{isResponderView ? "Assigned Incidents" : "Incidents"}</Link>
             <span>/</span>
             <span className="font-medium text-[var(--foreground)]">Not found</span>
           </>
@@ -203,7 +234,7 @@ function EvidencePageContent() {
         pageTitle="Incident not found"
         description="The requested incident could not be located."
         actions={
-          <Link href="/incidents" className={secondaryButton}>
+          <Link href={queueHref} className={secondaryButton}>
             <ArrowLeft className="h-4 w-4" />
             Return to queue
           </Link>
@@ -214,22 +245,55 @@ function EvidencePageContent() {
             We could not find an incident with the reference <span className="font-medium text-[var(--foreground)]">{String(incidentId ?? "")}</span>. It may
             have been removed or the link may be incorrect.
           </p>
-          <Link href="/incidents" className={cn(secondaryButton, "mt-4")}>
+          <Link href={queueHref} className={cn(secondaryButton, "mt-4")}>
             <ArrowLeft className="h-4 w-4" />
             Return to the incident queue
           </Link>
         </div>
-      </IncidentPortalShell>
+      </EvidenceShell>
+    );
+  }
+
+  if (
+    (isResponderView && !canResponderAccessIncident(incident, currentUser)) ||
+    (!isResponderView && currentUser.role === INCIDENT_RESPONDER)
+  ) {
+    return (
+      <EvidenceShell
+        breadcrumbs={
+          <>
+            <Link href={isResponderView ? "/responder/dashboard" : "/"}>{isResponderView ? "Responder Dashboard" : "Home"}</Link>
+            <span>/</span>
+            <Link href={queueHref}>{isResponderView ? "Assigned Incidents" : "Incidents"}</Link>
+            <span>/</span>
+            <span className="font-medium text-[var(--foreground)]">Access denied</span>
+          </>
+        }
+        pageTitle="Access denied"
+        description="You do not have permission to view this incident's media."
+        actions={
+          <Link href={isResponderView ? incidentHref : "/incidents"} className={secondaryButton}>
+            <ArrowLeft className="h-4 w-4" />
+            {isResponderView ? "Back to incident" : "Return to queue"}
+          </Link>
+        }
+      >
+        <div className="rounded-[18px] border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-soft)]">
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Responder access is limited to incidents directly assigned to the current responder.
+          </p>
+        </div>
+      </EvidenceShell>
     );
   }
 
   const breadcrumbs = (
     <>
-      <Link href="/">Home</Link>
+      <Link href={isResponderView ? "/responder/dashboard" : "/"}>{isResponderView ? "Responder Dashboard" : "Home"}</Link>
       <span>/</span>
-      <Link href="/incidents">Incidents</Link>
+      <Link href={queueHref}>{isResponderView ? "Assigned Incidents" : "Incidents"}</Link>
       <span>/</span>
-      <Link href={`/incidents/${incident.id}`}>{incident.id}</Link>
+      <Link href={incidentHref}>{incident.id}</Link>
       <span>/</span>
       <span className="font-medium text-[var(--foreground)]">Evidence</span>
     </>
@@ -237,7 +301,7 @@ function EvidencePageContent() {
 
   if (itemCount === 0) {
     return (
-      <IncidentPortalShell
+      <EvidenceShell
         breadcrumbs={breadcrumbs}
         pageTitle="Evidence review"
         description={
@@ -246,7 +310,7 @@ function EvidencePageContent() {
           </span>
         }
         actions={
-          <Link href={`/incidents/${incident.id}`} className={secondaryButton}>
+          <Link href={incidentHref} className={secondaryButton}>
             <ArrowLeft className="h-4 w-4" />
             Back to incident
           </Link>
@@ -261,19 +325,19 @@ function EvidencePageContent() {
             No photos, video or documents have been attached to this incident yet. Evidence appears here once a reporter or
             administrator uploads it.
           </p>
-          <Link href={`/incidents/${incident.id}`} className={cn(secondaryButton, "mt-6")}>
+          <Link href={incidentHref} className={cn(secondaryButton, "mt-6")}>
             <ArrowLeft className="h-4 w-4" />
             Back to incident
           </Link>
         </div>
-      </IncidentPortalShell>
+      </EvidenceShell>
     );
   }
 
   const previewSrc = selected && isSafeLocalSrc(selected.src) ? selected.src : null;
 
   return (
-    <IncidentPortalShell
+    <EvidenceShell
       breadcrumbs={breadcrumbs}
       pageTitle="Evidence review"
       description={
@@ -283,7 +347,7 @@ function EvidencePageContent() {
       }
       actions={
         <>
-          <Link href={`/incidents/${incident.id}`} className={secondaryButton}>
+          <Link href={incidentHref} className={secondaryButton}>
             <ArrowLeft className="h-4 w-4" />
             Back to incident
           </Link>
@@ -412,7 +476,7 @@ function EvidencePageContent() {
           <section className="rounded-[18px] border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-soft)]">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-[15px] font-semibold text-[var(--foreground)]">Incident details</h2>
-              <Link href={`/incidents/${incident.id}`} className="text-[12px] font-medium text-[var(--primary)] hover:underline">
+              <Link href={incidentHref} className="text-[12px] font-medium text-[var(--primary)] hover:underline">
                 View incident
               </Link>
             </div>
@@ -459,7 +523,7 @@ function EvidencePageContent() {
           </section>
         </aside>
       </div>
-    </IncidentPortalShell>
+    </EvidenceShell>
   );
 }
 
