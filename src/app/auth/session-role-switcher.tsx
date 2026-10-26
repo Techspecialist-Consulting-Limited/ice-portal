@@ -5,6 +5,7 @@ import { useCurrentUser } from "./current-user-provider";
 import {
   INCIDENT_RESPONDER,
   MANAGEMENT_USER,
+  SYSTEM_ADMINISTRATOR,
   USERS,
   type CurrentUser,
 } from "./current-user";
@@ -29,6 +30,8 @@ export function SessionRoleSwitcher() {
         ? "/responder/dashboard"
         : user.role === MANAGEMENT_USER
           ? "/management/dashboard"
+          : user.role === SYSTEM_ADMINISTRATOR
+            ? "/system-admin/dashboard"
           : "/";
       window.location.assign(destination);
     } catch (cause) {

@@ -15,11 +15,12 @@
 // Canonical role strings. Every guard and audit label compares against these
 // constants, so a role can only be renamed in one place and cannot drift into
 // a mismatched literal elsewhere.
-export type UserRole = "Risk Administrator" | "Incident Responder" | "Management User";
+export type UserRole = "Risk Administrator" | "Incident Responder" | "Management User" | "System Administrator";
 
 export const RISK_ADMINISTRATOR: UserRole = "Risk Administrator";
 export const INCIDENT_RESPONDER: UserRole = "Incident Responder";
 export const MANAGEMENT_USER: UserRole = "Management User";
+export const SYSTEM_ADMINISTRATOR: UserRole = "System Administrator";
 
 export type CurrentUser = {
   id: string;
@@ -71,6 +72,13 @@ export const USERS = {
     email: PROFILE_NOT_PROVIDED,
     role: MANAGEMENT_USER,
     department: "Executive Management",
+  },
+  systemAdmin: {
+    id: "SYS-01",
+    name: "Samuel Okada",
+    email: PROFILE_NOT_PROVIDED,
+    role: SYSTEM_ADMINISTRATOR,
+    department: "ICT Administration",
   },
 } as const satisfies Record<string, CurrentUser>;
 

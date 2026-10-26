@@ -6,6 +6,7 @@ import {
   MANAGEMENT_USER,
   RISK_ADMINISTRATOR,
   SESSION_USER_COOKIE,
+  SYSTEM_ADMINISTRATOR,
 } from "./current-user";
 
 export async function getSessionUser() {
@@ -26,4 +27,9 @@ export async function requireIncidentResponder(destination: string): Promise<voi
 export async function requireManagementUser(destination: string): Promise<void> {
   const user = await getSessionUser();
   if (user.role !== MANAGEMENT_USER) redirect(destination);
+}
+
+export async function requireSystemAdministrator(destination: string): Promise<void> {
+  const user = await getSessionUser();
+  if (user.role !== SYSTEM_ADMINISTRATOR) redirect(destination);
 }
