@@ -15,10 +15,11 @@
 // Canonical role strings. Every guard and audit label compares against these
 // constants, so a role can only be renamed in one place and cannot drift into
 // a mismatched literal elsewhere.
-export type UserRole = "Risk Administrator" | "Incident Responder";
+export type UserRole = "Risk Administrator" | "Incident Responder" | "Management User";
 
 export const RISK_ADMINISTRATOR: UserRole = "Risk Administrator";
 export const INCIDENT_RESPONDER: UserRole = "Incident Responder";
+export const MANAGEMENT_USER: UserRole = "Management User";
 
 export type CurrentUser = {
   id: string;
@@ -44,7 +45,7 @@ export type CurrentUser = {
 export const PROFILE_NOT_AVAILABLE = "Not available";
 export const PROFILE_NOT_PROVIDED = "Not provided";
 
-// The portal's two identities, as complete records. Both users live here so
+// The portal's demo identities, as complete records. All users live here so
 // that switching the signed-in user never means editing a record in place —
 // which is how the roles previously got mixed up (a responder test session
 // overwrote the administrator fixture, and audit trails then stamped
@@ -63,6 +64,13 @@ export const USERS = {
     name: "Abbas Taofeeq",
     email: PROFILE_NOT_PROVIDED,
     role: INCIDENT_RESPONDER,
+  },
+  managementDemo: {
+    id: "MGT-01",
+    name: "Suleman Olalomi",
+    email: PROFILE_NOT_PROVIDED,
+    role: MANAGEMENT_USER,
+    department: "Executive Management",
   },
 } as const satisfies Record<string, CurrentUser>;
 

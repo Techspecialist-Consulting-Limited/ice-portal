@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useCurrentUser } from "./current-user-provider";
-import { USERS, type CurrentUser } from "./current-user";
+import {
+  INCIDENT_RESPONDER,
+  MANAGEMENT_USER,
+  USERS,
+  type CurrentUser,
+} from "./current-user";
 
 const switchableUsers = Object.values(USERS) as CurrentUser[];
 
@@ -20,7 +25,12 @@ export function SessionRoleSwitcher() {
         body: JSON.stringify({ userId: user.id }),
       });
       if (!response.ok) throw new Error(`Role switch failed (${response.status}).`);
-      window.location.assign(user.role === "Incident Responder" ? "/responder/dashboard" : "/");
+      const destination = user.role === INCIDENT_RESPONDER
+        ? "/responder/dashboard"
+        : user.role === MANAGEMENT_USER
+          ? "/management/dashboard"
+          : "/";
+      window.location.assign(destination);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not change the active role.");
     }

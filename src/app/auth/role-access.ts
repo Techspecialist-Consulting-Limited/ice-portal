@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import {
   getUserById,
   INCIDENT_RESPONDER,
+  MANAGEMENT_USER,
   RISK_ADMINISTRATOR,
   SESSION_USER_COOKIE,
 } from "./current-user";
@@ -20,4 +21,9 @@ export async function requireRiskAdministrator(destination: string): Promise<voi
 export async function requireIncidentResponder(destination: string): Promise<void> {
   const user = await getSessionUser();
   if (user.role !== INCIDENT_RESPONDER) redirect(destination);
+}
+
+export async function requireManagementUser(destination: string): Promise<void> {
+  const user = await getSessionUser();
+  if (user.role !== MANAGEMENT_USER) redirect(destination);
 }
