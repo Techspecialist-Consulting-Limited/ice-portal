@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Suspense, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -14,7 +15,6 @@ import {
   Menu,
   RadioTower,
   Search,
-  ShieldCheck,
   UserRound,
   X,
 } from "lucide-react";
@@ -279,9 +279,13 @@ export function IncidentPortalShell({
     <main className="h-dvh w-full overflow-hidden bg-[var(--page-bg)] text-[var(--foreground)]">
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[230px] flex-col border-r border-[#E2EAE5] bg-white transition-transform md:translate-x-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center gap-3 px-4 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-[#EAF6EE] text-[#087443] ring-1 ring-[#D8EADD]">
-            <ShieldCheck className="h-4 w-4" strokeWidth={2.2} />
-          </div>
+          <Image
+            src="/evidence/ice-logo-removed-bg.png"
+            alt="ICE 2.0 logo"
+            width={64}
+            height={64}
+            className="h-9 w-9 shrink-0 object-contain"
+          />
           <div>
             <div className="text-[12px] font-semibold tracking-[0.02em] text-[#087443]">ICE 2.0</div>
             <div className="text-[10px] text-[#64746C]">NSIA · In Case of Emergency</div>

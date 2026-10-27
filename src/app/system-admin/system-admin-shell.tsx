@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { History, KeyRound, LayoutDashboard, LogOut, Menu, Settings2, ShieldCheck, UsersRound, X } from "lucide-react";
 import { SessionRoleSwitcher } from "../auth/session-role-switcher";
@@ -23,9 +24,13 @@ export function SystemAdminShell({ children }: { children: ReactNode }) {
     <main className="h-dvh w-full overflow-hidden bg-[var(--page-bg)] text-[var(--foreground)]">
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[250px] flex-col border-r border-[var(--border)] bg-[var(--panel)] transition-transform md:translate-x-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center gap-3 px-4 py-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-[var(--primary-soft)] text-[var(--primary)] ring-1 ring-[var(--border)]">
-            <ShieldCheck className="h-4 w-4" strokeWidth={2.2} aria-hidden="true" />
-          </span>
+          <Image
+            src="/evidence/ice-logo-removed-bg.png"
+            alt="ICE 2.0 logo"
+            width={64}
+            height={64}
+            className="h-9 w-9 shrink-0 object-contain"
+          />
           <span>
             <span className="block text-[12px] font-semibold tracking-[0.02em] text-[var(--primary)]">ICE 2.0</span>
             <span className="block text-[10px] text-[var(--muted-foreground)]">NSIA · In Case of Emergency</span>
