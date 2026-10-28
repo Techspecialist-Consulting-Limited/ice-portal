@@ -1,4 +1,5 @@
 import type { IncidentItem, IncidentStatus, IncidentType } from "@/app/dashboard/mock-data";
+import { BellRing, TriangleAlert, ClipboardList, type LucideIcon } from "lucide-react";
 
 export type IncidentTone = "danger" | "warning" | "info" | "success" | "neutral" | "primary";
 export type IncidentPriority = IncidentItem["priority"];
@@ -23,11 +24,35 @@ const priorityToneMap: Record<IncidentPriority, IncidentTone> = {
   Informational: "info",
 };
 
-const incidentTypeToneMap: Record<IncidentType, IncidentTone> = {
-  SOS: "danger",
-  "Emergency Report": "danger",
-  "Incident Report": "neutral",
+// Report type badge configuration: unique icon, background color, and text/icon color
+// for each canonical report type, as specified in the approved visual reference.
+const reportTypeConfig: Record<IncidentType, { icon: LucideIcon; bg: string; text: string }> = {
+  SOS: {
+    icon: BellRing,
+    bg: "#E5F0FF",
+    text: "#175CD3",
+  },
+  "Emergency Report": {
+    icon: TriangleAlert,
+    bg: "#FFF2D6",
+    text: "#A15C00",
+  },
+  "Incident Report": {
+    icon: ClipboardList,
+    bg: "#FFE5E5",
+    text: "#C62828",
+  },
 };
+
+export const UNCLASSIFIED_INCIDENT_TYPE = "Needs classification" as const;
+
+export function isIncidentType(value: unknown): value is IncidentType {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(reportTypeConfig, value);
+}
+
+export function incidentTypeLabel(value: unknown): IncidentType | typeof UNCLASSIFIED_INCIDENT_TYPE {
+  return isIncidentType(value) ? value : UNCLASSIFIED_INCIDENT_TYPE;
+}
 
 export function incidentStatusTone(status: IncidentStatus): IncidentTone {
   return statusToneMap[status] ?? "neutral";
@@ -35,10 +60,6 @@ export function incidentStatusTone(status: IncidentStatus): IncidentTone {
 
 export function incidentPriorityTone(priority: IncidentPriority): IncidentTone {
   return priorityToneMap[priority] ?? "info";
-}
-
-export function incidentTypeTone(type: IncidentType): IncidentTone {
-  return incidentTypeToneMap[type] ?? "neutral";
 }
 
 const toneClassMap: Record<IncidentTone, string> = {
@@ -70,9 +91,31 @@ export function PriorityBadge({ priority, className }: { priority: IncidentPrior
   return <ToneBadge label={priority} tone={incidentPriorityTone(priority)} className={className} />;
 }
 
-export function IncidentTypeBadge({ incidentType, className }: { incidentType?: IncidentType; className?: string }) {
-  if (!incidentType) return null;
-  return <ToneBadge label={incidentType} tone={incidentTypeTone(incidentType)} className={className} />;
+export function IncidentTypeBadge({
+  incidentType,
+  className,
+}: {
+  incidentType?: IncidentType | string | null;
+  className?: string;
+}) {
+  if (!isIncidentType(incidentType)) {
+    return <ToneBadge label={UNCLASSIFIED_INCIDENT_TYPE} tone="neutral" className={className} />;
+  }
+  const config = reportTypeConfig[incidentType];
+
+  const Icon = config.icon;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
+        className
+      )}
+      style={{ backgroundColor: config.bg, color: config.text }}
+    >
+      <Icon aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
+      <span>{incidentType}</span>
+    </span>
+  );
 }
 
 // The workflow stages shown in the dashboard "Incident status" panel, in order.

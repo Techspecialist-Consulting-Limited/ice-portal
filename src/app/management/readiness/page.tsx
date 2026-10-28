@@ -14,6 +14,10 @@ import {
   UsersRound,
 } from "lucide-react";
 import type { IncidentType } from "@/app/dashboard/mock-data";
+import {
+  UNCLASSIFIED_INCIDENT_TYPE,
+  incidentTypeLabel,
+} from "../../incidents/incident-status";
 import { summarizeAlertAcknowledgement } from "../../alerts/alert-metrics";
 import { getAlertStateServerSnapshot, getAlertStateSnapshot, subscribeToAlertState } from "../../alerts/alert-state";
 import { getIncidentStateServerSnapshot, getIncidentStateSnapshot, subscribeToIncidentState } from "../../incidents/incident-state";
@@ -55,10 +59,11 @@ type MonthlyActivity = {
   feeds: number;
 };
 
-const INCIDENT_TYPES: Array<{ value: IncidentType; label: string }> = [
+const INCIDENT_TYPES: Array<{ value: IncidentType | typeof UNCLASSIFIED_INCIDENT_TYPE; label: string }> = [
   { value: "SOS", label: "SOS requests" },
   { value: "Emergency Report", label: "Emergency reports" },
   { value: "Incident Report", label: "Incident reports" },
+  { value: UNCLASSIFIED_INCIDENT_TYPE, label: UNCLASSIFIED_INCIDENT_TYPE },
 ];
 
 function monthKey(timestamp: number) {
@@ -272,7 +277,11 @@ function ActivityTrend({ data }: { data: MonthlyActivity[] }) {
   );
 }
 
-function ReportTypeSummary({ counts }: { counts: Record<IncidentType, number> }) {
+function ReportTypeSummary({
+  counts,
+}: {
+  counts: Record<IncidentType | typeof UNCLASSIFIED_INCIDENT_TYPE, number>;
+}) {
   return (
     <section className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex items-start gap-3">
@@ -284,7 +293,7 @@ function ReportTypeSummary({ counts }: { counts: Record<IncidentType, number> })
           <p className="mt-1 text-[11px] text-[var(--muted-foreground)]">Incident reports by type in the selected period</p>
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {INCIDENT_TYPES.map(({ value, label }) => (
           <div key={value} className="rounded-lg bg-[var(--muted)] p-3">
             <p className="text-[10px] font-medium text-[var(--muted-foreground)]">{label}</p>
@@ -353,11 +362,16 @@ export default function ManagementReadinessPage() {
   );
   const incidentTypeCounts = useMemo(() => {
     const cutoff = period.days === null || now === null ? null : now - period.days * 24 * 60 * 60 * 1000;
-    const counts: Record<IncidentType, number> = { SOS: 0, "Emergency Report": 0, "Incident Report": 0 };
+    const counts: Record<IncidentType | typeof UNCLASSIFIED_INCIDENT_TYPE, number> = {
+      SOS: 0,
+      "Emergency Report": 0,
+      "Incident Report": 0,
+      [UNCLASSIFIED_INCIDENT_TYPE]: 0,
+    };
     incidents.forEach((incident) => {
       const timestamp = parseIncidentReported(incident.reported);
       if (timestamp === null || (now !== null && timestamp > now) || (cutoff !== null && timestamp < cutoff)) return;
-      counts[incident.incidentType ?? "Incident Report"] += 1;
+      counts[incidentTypeLabel(incident.incidentType)] += 1;
     });
     return counts;
   }, [incidents, now, period.days]);

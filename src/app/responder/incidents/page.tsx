@@ -14,7 +14,6 @@ import {
   FileWarning,
   MapPin,
   Search,
-  ShieldCheck,
   SlidersHorizontal,
   X,
 } from "lucide-react";
@@ -23,14 +22,13 @@ import {
   getIncidentStateSnapshot,
   subscribeToIncidentState,
 } from "../../incidents/incident-state";
-import { IncidentTypeBadge, PriorityBadge, StatusBadge, isActiveIncident } from "../../incidents/incident-status";
+import { IncidentTypeBadge, PriorityBadge, isActiveIncident } from "../../incidents/incident-status";
 import { parseIncidentReported } from "../../incidents/incident-reported";
 import { ResponderPortalShell } from "../responder-shell";
 import { canResponderAccessIncident } from "../responder-access";
 import { useCurrentUser } from "../../auth/current-user-provider";
 
 const INCIDENT_PAGE_SIZE = 10;
-const INCIDENT_STATUS_OPTIONS = ["All statuses", "Submitted", "Under review", "Verified", "Rejected", "Escalated", "Broadcast", "Resolved", "Closed", "Resolved / closed"];
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -54,7 +52,6 @@ function ResponderIncidentsPageInner() {
   const searchTerm = searchParams.get("search") ?? "";
 
   const category = searchParams.get("category") ?? "all";
-  const status = searchParams.get("status") ?? "all";
   const location = searchParams.get("location") ?? "all";
   const incidentType = searchParams.get("incidentType") ?? "all";
   const period = searchParams.get("period") ?? "all";
@@ -106,18 +103,17 @@ function ResponderIncidentsPageInner() {
     return incidentList.filter((incident) => {
       const matchesAssigned = canResponderAccessIncident(incident, currentUser);
       const matchesCategory = category === "all" || incident.category === category;
-      const matchesStatus = status === "all" || (status === "resolved" ? incident.status === "Resolved" || incident.status === "Closed" : incident.status === status);
       const matchesLocation = location === "all" || incident.location === location;
       const matchesIncidentType = incidentType === "all" || incident.incidentType === incidentType;
       const reportedAt = parseIncidentReported(incident.reported);
       const matchesPeriod = cutoff === null || (reportedAt !== null && reportedAt >= cutoff);
       const matchesSearch =
         term.length === 0 ||
-        `${incident.title} ${incident.id} ${incident.category} ${incident.location} ${incident.reporter ?? ""} ${incident.department ?? ""}`.toLowerCase().includes(term);
+        `${incident.title} ${incident.id} ${incident.incidentType ?? ""} ${incident.category} ${incident.location} ${incident.reporter ?? ""} ${incident.department ?? ""}`.toLowerCase().includes(term);
 
-      return matchesAssigned && matchesCategory && matchesStatus && matchesLocation && matchesIncidentType && matchesPeriod && matchesSearch;
+      return matchesAssigned && matchesCategory && matchesLocation && matchesIncidentType && matchesPeriod && matchesSearch;
     });
-  }, [category, incidentList, location, now, period, status, searchTerm, incidentType, currentUser]);
+  }, [category, incidentList, location, now, period, searchTerm, incidentType, currentUser]);
 
   const pageCount = Math.max(1, Math.ceil(filteredIncidents.length / INCIDENT_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -127,7 +123,6 @@ function ResponderIncidentsPageInner() {
 
   const activeFilterCount = [
     category !== "all",
-    status !== "all",
     location !== "all",
     incidentType !== "all",
     searchTerm.trim().length > 0,
@@ -189,7 +184,7 @@ function ResponderIncidentsPageInner() {
       description="Search, filter and manage incidents directly assigned to your responder account."
     >
       {showFilters && (
-        <div className="mb-5 grid gap-3 rounded-[16px] bg-white p-3 shadow-[var(--shadow-soft)] md:grid-cols-2 xl:grid-cols-5">
+        <div className="mb-5 grid gap-3 rounded-[16px] bg-white p-3 shadow-[var(--shadow-soft)] md:grid-cols-2 xl:grid-cols-4">
           <FilterField
             label="Reporting period"
             value={period === "7d" ? "Last 7 days" : period === "24h" ? "Last 24 hours" : period === "30d" ? "Last 30 days" : "All time"}
@@ -205,13 +200,6 @@ function ResponderIncidentsPageInner() {
             icon={ClipboardList}
           />
           <FilterField
-            label="Status"
-            value={status === "all" ? "All statuses" : status === "resolved" ? "Resolved / closed" : status}
-            onChange={(value) => applyFilters({ status: value })}
-            options={INCIDENT_STATUS_OPTIONS}
-            icon={ShieldCheck}
-          />
-          <FilterField
             label="Location"
             value={location === "all" ? "All locations" : location}
             onChange={(value) => applyFilters({ location: value })}
@@ -219,10 +207,10 @@ function ResponderIncidentsPageInner() {
             icon={MapPin}
           />
           <FilterField
-            label="Incident type"
-            value={incidentType === "all" ? "All types" : incidentType}
+            label="Report type"
+            value={incidentType === "all" ? "All report types" : incidentType}
             onChange={(value) => applyFilters({ incidentType: value })}
-            options={["All types", "SOS", "Emergency Report", "Incident Report"]}
+            options={["All report types", "SOS", "Emergency Report", "Incident Report"]}
             icon={FileWarning}
           />
         </div>
@@ -244,10 +232,8 @@ function ResponderIncidentsPageInner() {
               key={card.label}
               type="button"
               onClick={() => {
-                if (card.label === "Active assignments") applyFilters({ status: "all" });
-                if (card.label === "Escalated") applyFilters({ status: "Escalated" });
-                if (card.label === "Resolved") applyFilters({ status: "Resolved" });
-                if (card.label === "Assigned incidents") applyFilters({ status: "all" });
+                // KPI cards now reset to show all assigned incidents
+                applyFilters({});
               }}
               className="rounded-[16px] border border-[var(--border)] bg-white p-4 text-left shadow-[var(--shadow-soft)] transition-colors hover:border-[var(--primary)]"
               aria-label={`${card.label}: ${card.value}`}
@@ -307,15 +293,14 @@ function ResponderIncidentsPageInner() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1080px] w-full border-separate border-spacing-0 text-left">
+          <table className="min-w-[1000px] w-full border-separate border-spacing-0 text-left">
             <thead>
               <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
                 <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Reference / incident</th>
-                <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Type</th>
+                <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Report type</th>
                 <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Category</th>
                 <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Location</th>
                 <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Priority</th>
-                <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Status</th>
                 <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Assigned</th>
                 <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Reported</th>
                 <th className="border-b border-[var(--border)] px-3 py-3 font-medium text-right">Action</th>
@@ -337,9 +322,6 @@ function ResponderIncidentsPageInner() {
                   <td className="border-b border-[var(--border)] px-3 py-3">
                     <PriorityBadge priority={incident.priority} />
                   </td>
-                  <td className="border-b border-[var(--border)] px-3 py-3">
-                    <StatusBadge status={incident.status} />
-                  </td>
                   <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">
                     {incident.assignment?.assignee ?? "Not assigned"}
                   </td>
@@ -357,7 +339,7 @@ function ResponderIncidentsPageInner() {
               ))}
               {visibleIncidents.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="border-b border-[var(--border)] px-3 py-10 text-center text-sm text-[var(--muted-foreground)]">
+                  <td colSpan={8} className="border-b border-[var(--border)] px-3 py-10 text-center text-sm text-[var(--muted-foreground)]">
                     {activeFilterCount > 0 ? "No assigned incidents match these filters." : "No incidents are currently assigned to you."}
                   </td>
                 </tr>
@@ -405,7 +387,7 @@ function FilterField({
             value === "All categories" ? "all" :
             value === "All statuses" ? "all" :
             value === "All locations" ? "all" :
-            value === "All types" ? "all" :
+            value === "All report types" ? "all" :
             value === "Resolved / closed" ? "resolved" :
             value === "Last 30 days" ? "Last 30 days" :
             value
@@ -418,7 +400,7 @@ function FilterField({
               option === "All categories" ? "all" :
               option === "All statuses" ? "all" :
               option === "All locations" ? "all" :
-              option === "All types" ? "all" :
+              option === "All report types" ? "all" :
               option === "Resolved / closed" ? "resolved" :
               option;
 

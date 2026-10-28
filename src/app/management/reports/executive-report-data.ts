@@ -1,7 +1,11 @@
 import type { AlertItem, FeedItem, IncidentItem, IncidentType } from "@/app/dashboard/mock-data";
 import { summarizeAlertAcknowledgement } from "../../alerts/alert-metrics";
 import { isActiveAlert } from "../../alerts/alert-status";
-import { isActiveIncident } from "../../incidents/incident-status";
+import {
+  UNCLASSIFIED_INCIDENT_TYPE,
+  incidentTypeLabel,
+  isActiveIncident,
+} from "../../incidents/incident-status";
 import { parseIncidentReported } from "../../incidents/incident-reported";
 
 export type ExecutiveReportKind = "summary" | "incidents" | "alerts" | "readiness";
@@ -34,10 +38,11 @@ export const EXECUTIVE_ADOPTION_SNAPSHOT = {
   previous: { label: "September 2026", signedIn: 632, feedReaders: 468 },
 } as const;
 
-const INCIDENT_TYPE_OPTIONS: Array<{ value: IncidentType; label: string }> = [
+const INCIDENT_TYPE_OPTIONS: Array<{ value: IncidentType | typeof UNCLASSIFIED_INCIDENT_TYPE; label: string }> = [
   { value: "SOS", label: "SOS requests" },
   { value: "Emergency Report", label: "Emergency reports" },
   { value: "Incident Report", label: "Incident reports" },
+  { value: UNCLASSIFIED_INCIDENT_TYPE, label: UNCLASSIFIED_INCIDENT_TYPE },
 ];
 
 const BASIC_COLUMNS: ExecutiveReportColumn[] = [
@@ -138,7 +143,7 @@ function incidentRows(incidents: IncidentItem[]): ExecutiveReportRow[] {
     { name: "Status", value: (incident: IncidentItem) => incident.status },
     { name: "Priority", value: (incident: IncidentItem) => incident.priority },
     { name: "Category", value: (incident: IncidentItem) => incident.category.trim() || "Unspecified" },
-    { name: "Report type", value: (incident: IncidentItem) => incident.incidentType ?? "Incident Report" },
+    { name: "Report type", value: (incident: IncidentItem) => incidentTypeLabel(incident.incidentType) },
   ];
 
   return dimensions.flatMap(({ name, value }) =>
@@ -219,7 +224,7 @@ function readinessRows(sources: ExecutiveReportSources): ExecutiveReportRow[] {
   ];
   const typeRows = INCIDENT_TYPE_OPTIONS.map(({ value, label }) =>
     row("Reports received", "Incident report type", label, {
-      total: sources.incidents.filter((incident) => (incident.incidentType ?? "Incident Report") === value).length,
+      total: sources.incidents.filter((incident) => incidentTypeLabel(incident.incidentType) === value).length,
     }),
   );
   const acknowledgementRows = [
@@ -275,7 +280,7 @@ export function buildExecutiveReportRows(
     row("Executive summary", "Security Feed items published", "Selected period", { total: sources.feeds.length }),
     ...INCIDENT_TYPE_OPTIONS.map(({ value, label }) =>
       row("Executive summary", "Incident report type", label, {
-        total: sources.incidents.filter((incident) => (incident.incidentType ?? "Incident Report") === value).length,
+        total: sources.incidents.filter((incident) => incidentTypeLabel(incident.incidentType) === value).length,
       }),
     ),
   ];

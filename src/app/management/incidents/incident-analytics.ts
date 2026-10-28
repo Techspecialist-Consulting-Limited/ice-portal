@@ -1,5 +1,9 @@
 import type { IncidentItem, IncidentStatus } from "@/app/dashboard/mock-data";
-import { INCIDENT_STATUS_ORDER, isActiveIncident } from "../../incidents/incident-status";
+import {
+  INCIDENT_STATUS_ORDER,
+  incidentTypeLabel,
+  isActiveIncident,
+} from "../../incidents/incident-status";
 import { parseIncidentReported } from "../../incidents/incident-reported";
 
 export type IncidentAnalyticsFilters = {
@@ -49,7 +53,7 @@ export function getIncidentValue(incident: IncidentItem, dimension: IncidentAnal
     case "category":
       return incident.category.trim() || "Unspecified";
     case "incidentType":
-      return incident.incidentType ?? "Incident Report";
+      return incidentTypeLabel(incident.incidentType);
   }
 }
 

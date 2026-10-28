@@ -34,17 +34,40 @@ export function readIncidentState(): IncidentItem[] {
     return seedIncidents;
   }
 
+  let stored: string | null;
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return seedIncidents;
-    }
-
-    const parsed = JSON.parse(stored) as IncidentItem[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : seedIncidents;
+    stored = window.localStorage.getItem(STORAGE_KEY);
   } catch {
     return seedIncidents;
   }
+  if (!stored) return seedIncidents;
+
+  let parsed: IncidentItem[];
+  try {
+    parsed = JSON.parse(stored) as IncidentItem[];
+  } catch {
+    return seedIncidents;
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) return seedIncidents;
+
+  const seedTypesById = new Map(
+    seedIncidents.flatMap((incident) =>
+      incident.incidentType ? [[incident.id, incident.incidentType] as const] : [],
+    ),
+  );
+  let migrated = false;
+  const incidentsWithSeedTypes = parsed.map((incident) => {
+    if (incident.incidentType) return incident;
+    const incidentType = seedTypesById.get(incident.id);
+    if (!incidentType) return incident;
+    migrated = true;
+    return { ...incident, incidentType };
+  });
+
+  if (migrated) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(incidentsWithSeedTypes));
+  }
+  return incidentsWithSeedTypes;
 }
 
 export function writeIncidentState(items: IncidentItem[]) {

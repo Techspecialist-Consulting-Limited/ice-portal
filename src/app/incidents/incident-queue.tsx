@@ -25,7 +25,13 @@ import {
   getIncidentStateSnapshot,
   subscribeToIncidentState,
 } from "./incident-state";
-import { IncidentTypeBadge, PriorityBadge, StatusBadge, ToneBadge, isActiveIncident } from "./incident-status";
+import {
+  IncidentTypeBadge,
+  PriorityBadge,
+  ToneBadge,
+  incidentTypeLabel,
+  isActiveIncident,
+} from "./incident-status";
 import { parseIncidentReported } from "./incident-reported";
 import { IncidentPortalShell } from "./incident-shell";
 import { CURRENT_USER } from "../auth/current-user";
@@ -144,7 +150,7 @@ function IncidentsPageInner() {
       const matchesPeriod = cutoff === null || (reportedAt !== null && reportedAt >= cutoff);
       const matchesSearch =
         term.length === 0 ||
-        `${incident.title} ${incident.id} ${incident.category} ${incident.location} ${incident.reporter ?? ""} ${incident.department ?? ""}`.toLowerCase().includes(term);
+        `${incident.title} ${incident.id} ${incident.incidentType ?? ""} ${incident.category} ${incident.location} ${incident.reporter ?? ""} ${incident.department ?? ""}`.toLowerCase().includes(term);
 
       return matchesScope && matchesCategory && matchesPriority && matchesStatus && matchesLocation && matchesIncidentType && matchesPeriod && matchesSearch;
     });
@@ -251,17 +257,16 @@ function IncidentsPageInner() {
     const rows = filteredIncidents.map((incident) => [
       incident.id,
       incident.title,
-      incident.incidentType ?? "Not recorded",
+      incidentTypeLabel(incident.incidentType),
       incident.category,
       incident.location,
       incident.priority,
-      incident.status,
-      incident.reported,
       incident.reviewStatus,
+      incident.reported,
     ]);
 
     const csv = [
-      ["Reference", "Incident", "Type", "Category", "Location", "Priority", "Status", "Reported", "Review status"],
+      ["Reference", "Incident", "Report type", "Category", "Location", "Priority", "Review status", "Reported"],
       ...rows,
     ]
       .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
@@ -346,10 +351,10 @@ function IncidentsPageInner() {
                   icon={MapPin}
                 />
                 <FilterField
-                  label="Incident type"
-                  value={incidentType === "all" ? "All types" : incidentType}
+                  label="Report type"
+                  value={incidentType === "all" ? "All report types" : incidentType}
                   onChange={(value) => applyFilters({ incidentType: value })}
-                  options={["All types", "SOS", "Emergency Report", "Incident Report"]}
+                  options={["All report types", "SOS", "Emergency Report", "Incident Report"]}
                   icon={FileWarning}
                 />
               </div>
@@ -441,19 +446,18 @@ function IncidentsPageInner() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-[1080px] w-full border-separate border-spacing-0 text-left">
+                <table className="min-w-[1000px] w-full border-separate border-spacing-0 text-left">
                   <thead>
                     <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
                       <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Reference / incident</th>
-                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Type</th>
+                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Report type</th>
                       <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Category</th>
                       <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Location</th>
                       {scope !== "assigned" && <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Priority</th>}
-                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Status</th>
                       {scope === "assigned" && <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Assigned</th>}
-                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Reported</th>
                       {scope !== "assigned" && <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Review status</th>}
-                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium text-right">Action</th>
+                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Reported</th>
+                      <th className="border-b border-[var(--border)] px-3 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
 
@@ -474,15 +478,11 @@ function IncidentsPageInner() {
                             <PriorityBadge priority={incident.priority} />
                           </td>
                         )}
-                        <td className="border-b border-[var(--border)] px-3 py-3">
-                          <StatusBadge status={incident.status} />
-                        </td>
                         {scope === "assigned" && (
                           <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">
                             {incident.assignment?.assignee ?? "Not assigned"}
                           </td>
                         )}
-                        <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">{incident.reported}</td>
                         {scope !== "assigned" && (
                           <td className="border-b border-[var(--border)] px-3 py-3">
                             <ToneBadge
@@ -499,6 +499,7 @@ function IncidentsPageInner() {
                             />
                           </td>
                         )}
+                        <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">{incident.reported}</td>
                         <td className="border-b border-[var(--border)] px-3 py-3 text-right">
                           <Link
                             href={`/incidents/${encodeURIComponent(incident.id)}`}
@@ -512,7 +513,7 @@ function IncidentsPageInner() {
                     ))}
                     {visibleIncidents.length === 0 && (
                       <tr>
-                        <td colSpan={scope === "assigned" ? 8 : 9} className="border-b border-[var(--border)] px-3 py-10 text-center text-sm text-[var(--muted-foreground)]">
+                        <td colSpan={scope === "assigned" ? 7 : 8} className="border-b border-[var(--border)] px-3 py-10 text-center text-sm text-[var(--muted-foreground)]">
                           No incidents match the selected filters.
                         </td>
                       </tr>
@@ -561,6 +562,7 @@ function FilterField({
             value === "All priorities" ? "all" :
             value === "All statuses" ? "all" :
             value === "All locations" ? "all" :
+            value === "All report types" ? "all" :
             value === "Resolved / closed" ? "resolved" :
             value === "Last 30 days" ? "Last 30 days" :
             value
@@ -574,6 +576,7 @@ function FilterField({
               option === "All priorities" ? "all" :
               option === "All statuses" ? "all" :
               option === "All locations" ? "all" :
+              option === "All report types" ? "all" :
               option === "Resolved / closed" ? "resolved" :
               option;
 

@@ -16,7 +16,12 @@ import {
   subscribeToIncidentState,
   updateIncident,
 } from "../../../incidents/incident-state";
-import { IncidentTypeBadge, PriorityBadge, StatusBadge } from "../../../incidents/incident-status";
+import {
+  IncidentTypeBadge,
+  PriorityBadge,
+  StatusBadge,
+  incidentTypeLabel,
+} from "../../../incidents/incident-status";
 import {
   IncidentOverviewSection,
   IncidentRelatedRow,
@@ -28,6 +33,7 @@ import { currentActorLabel } from "../../../auth/current-user";
 import { useCurrentUser } from "../../../auth/current-user-provider";
 import { ConfirmDialog } from "../../../alerts/alert-dialog";
 import { escalationBlockReason } from "../../../incidents/incident-workflow";
+import { IncidentMapBanner } from "../../../incidents/incident-map-banner";
 
 const RESOLVABLE_STATUSES = ["Verified", "Escalated", "Broadcast"] as const;
 
@@ -462,6 +468,7 @@ function IncidentDetailsContent() {
       activeNav="assigned"
       breadcrumbs={breadcrumbs(<span className="font-medium text-[var(--foreground)]">{incident.id}</span>)}
       pageTitle={incident.title}
+      titleClassName="text-[30px] leading-[36px]"
       description={
         <span className="inline-flex flex-wrap items-center gap-x-1.5 text-[13px] text-[var(--muted-foreground)]">
           <span className="font-medium text-[var(--foreground)]">{incident.id}</span>
@@ -473,14 +480,16 @@ function IncidentDetailsContent() {
         <>
           <PriorityBadge priority={incident.priority} />
           <StatusBadge status={incident.status} />
-          {incident.incidentType ? (
-            <IncidentTypeBadge incidentType={incident.incidentType} />
-          ) : (
-            <span className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted-foreground)]">
-              Type not recorded
-            </span>
-          )}
+          <IncidentTypeBadge incidentType={incident.incidentType} />
         </>
+      }
+      topContent={
+        <IncidentMapBanner
+          incidentId={incident.id}
+          incidentType={incident.incidentType}
+          location={incident.location}
+          floorArea={incident.floorArea}
+        />
       }
     >
       <div className="mb-4">
@@ -707,7 +716,7 @@ function IncidentDetailsContent() {
               </div>
               <div className="min-w-0">
                 <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--muted-foreground)]">Type</dt>
-                <dd className="mt-1 truncate text-[12px] font-semibold text-[var(--foreground)]">{incident.incidentType ?? "Not recorded"}</dd>
+                <dd className="mt-1 truncate text-[12px] font-semibold text-[var(--foreground)]">{incidentTypeLabel(incident.incidentType)}</dd>
               </div>
               <div className="col-span-2 min-w-0 sm:col-span-3">
                 <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--muted-foreground)]">Incident</dt>

@@ -100,7 +100,7 @@ function PortalSearchField() {
     const matches: GlobalSearchResult[] = [
       ...incidents
         .filter((item) =>
-          `${item.id} ${item.title} ${item.description ?? ""} ${item.category} ${item.location} ${item.status} ${item.reporter ?? ""} ${item.department ?? ""}`
+          `${item.id} ${item.title} ${item.description ?? ""} ${item.incidentType ?? ""} ${item.category} ${item.location} ${item.status} ${item.reporter ?? ""} ${item.department ?? ""}`
             .toLocaleLowerCase()
             .includes(term),
         )
@@ -262,6 +262,7 @@ export function IncidentPortalShell({
   description,
   actions,
   titleClassName,
+  topContent,
 }: {
   children: React.ReactNode;
   activeNav?: PortalNavKey;
@@ -271,6 +272,7 @@ export function IncidentPortalShell({
   description?: React.ReactNode;
   actions?: React.ReactNode;
   titleClassName?: string;
+  topContent?: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const currentUser = useCurrentUser();
@@ -371,6 +373,7 @@ export function IncidentPortalShell({
 
         <div className="flex-1 overflow-y-auto bg-[var(--background)]">
           <div className="mx-auto max-w-[1600px] px-4 py-5 lg:px-6 lg:py-6">
+            {topContent && <div className="mb-5">{topContent}</div>}
             {breadcrumbs && <div className="mb-4 flex items-center gap-2 text-[12px] text-[var(--muted-foreground)]">{breadcrumbs}</div>}
 
             <div className="mb-5 flex flex-col gap-4 min-[1700px]:flex-row min-[1700px]:items-end min-[1700px]:justify-between">

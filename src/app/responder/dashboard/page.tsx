@@ -12,7 +12,6 @@ import {
   ClipboardList,
   Clock3,
   MapPin,
-  Search,
   Tag,
 } from "lucide-react";
 import type { IncidentItem, IncidentStatus } from "../../dashboard/mock-data";
@@ -26,7 +25,6 @@ import {
   INCIDENT_STATUS_ORDER,
   IncidentTypeBadge,
   PriorityBadge,
-  StatusBadge,
   incidentStatusBarColor,
   isActiveIncident,
 } from "../../incidents/incident-status";
@@ -44,17 +42,15 @@ function cn(...classes: Array<string | false | null | undefined>) {
 
 type QueueFilters = {
   category?: string;
-  status?: string;
   location?: string;
   period?: string;
   incidentType?: string;
 };
 
-function queueHref({ status, category, location, period, incidentType }: QueueFilters) {
+function queueHref({ category, location, period, incidentType }: QueueFilters) {
   const params = new URLSearchParams();
   if (category && category !== "all") params.set("category", category);
   if (location && location !== "all") params.set("location", location);
-  if (status && status !== "all") params.set("status", status);
   if (period && period !== "all") params.set("period", period);
   if (incidentType && incidentType !== "all") params.set("incidentType", incidentType);
   const query = params.toString();
@@ -186,7 +182,6 @@ export default function ResponderDashboardPage() {
 
   const [period, setPeriod] = useState("all");
   const [category, setCategory] = useState("all");
-  const [status, setStatus] = useState("all");
   const [location, setLocation] = useState("all");
   const [incidentType, setIncidentType] = useState("all");
   const [now] = useState<number | null>(() => (typeof window === "undefined" ? null : Date.now()));
@@ -200,23 +195,18 @@ export default function ResponderDashboardPage() {
     [incidents],
   );
   const incidentTypeOptions = [
-    { value: "all", label: "All types" },
+    { value: "all", label: "All report types" },
     { value: "SOS", label: "SOS" },
     { value: "Emergency Report", label: "Emergency Report" },
     { value: "Incident Report", label: "Incident Report" },
   ];
-  const statusOptions = [
-    { value: "all", label: "All statuses" },
-    ...INCIDENT_STATUS_ORDER.map((value) => ({ value, label: value })),
-  ];
 
-  const filters: QueueFilters = { category, status, location, period, incidentType };
-  const hasActiveFilters = period !== "all" || category !== "all" || status !== "all" || location !== "all" || incidentType !== "all";
+  const filters: QueueFilters = { category, location, period, incidentType };
+  const hasActiveFilters = period !== "all" || category !== "all" || location !== "all" || incidentType !== "all";
 
   const resetFilters = () => {
     setPeriod("all");
     setCategory("all");
-    setStatus("all");
     setLocation("all");
     setIncidentType("all");
   };
@@ -226,7 +216,6 @@ export default function ResponderDashboardPage() {
     return incidents.filter((incident: IncidentItem) => {
       if (!canResponderAccessIncident(incident, currentUser)) return false;
       if (category !== "all" && incident.category !== category) return false;
-      if (status !== "all" && incident.status !== status) return false;
       if (location !== "all" && incident.location !== location) return false;
       if (incidentType !== "all" && incident.incidentType !== incidentType) return false;
       if (cutoff !== null) {
@@ -235,7 +224,7 @@ export default function ResponderDashboardPage() {
       }
       return true;
     });
-  }, [incidents, now, period, category, status, location, incidentType, currentUser]);
+  }, [incidents, now, period, category, location, incidentType, currentUser]);
 
   const activeAssignments = useMemo(
     () => scopedIncidents.filter((incident: IncidentItem) => isActiveIncident(incident.status)),
@@ -295,12 +284,11 @@ export default function ResponderDashboardPage() {
         </Link>
       }
     >
-      <div className="grid gap-3 rounded-[16px] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-soft)] md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 rounded-[16px] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-soft)] md:grid-cols-2 xl:grid-cols-4">
         <FilterControl label="Reporting period" icon={CalendarDays} value={period} options={PERIOD_OPTIONS} onChange={setPeriod} />
         <FilterControl label="Category" icon={ClipboardList} value={category} options={categoryOptions} onChange={setCategory} />
-        <FilterControl label="Status" icon={Search} value={status} options={statusOptions} onChange={setStatus} />
         <FilterControl label="Location" icon={MapPin} value={location} options={locationOptions} onChange={setLocation} />
-        <FilterControl label="Incident type" icon={Tag} value={incidentType} options={incidentTypeOptions} onChange={setIncidentType} />
+        <FilterControl label="Report type" icon={Tag} value={incidentType} options={incidentTypeOptions} onChange={setIncidentType} />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[12px] text-[var(--muted-foreground)]">
@@ -327,7 +315,7 @@ export default function ResponderDashboardPage() {
           title="Active assignments"
           value={activeAssignmentsCount}
           subtitle="Requiring action"
-          href={queueHref({ ...filters, status: "all" })}
+          href={queueHref(filters)}
         />
         <KpiCard
           icon={ArrowUpRight}
@@ -335,7 +323,7 @@ export default function ResponderDashboardPage() {
           title="Escalated"
           value={escalatedCount}
           subtitle="Escalated incidents"
-          href={queueHref({ ...filters, status: "Escalated" })}
+          href={queueHref(filters)}
         />
         <KpiCard
           icon={CircleCheck}
@@ -343,7 +331,7 @@ export default function ResponderDashboardPage() {
           title="Resolved"
           value={resolvedCount}
           subtitle="Recently resolved"
-          href={queueHref({ ...filters, status: "Resolved" })}
+          href={queueHref(filters)}
         />
       </div>
 
@@ -374,7 +362,6 @@ export default function ResponderDashboardPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <PriorityBadge priority={incident.priority} />
-                        <StatusBadge status={incident.status} />
                         <IncidentTypeBadge incidentType={incident.incidentType} />
                       </div>
                       <div className="mt-1.5 truncate text-[14px] font-medium text-[var(--foreground)]">{incident.title}</div>
@@ -421,7 +408,7 @@ export default function ResponderDashboardPage() {
               return (
                 <Link
                   key={status}
-                  href={queueHref({ status, ...filters })}
+                  href={queueHref(filters)}
                   className="block rounded-lg px-1 py-1 transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 >
                   <div className="flex items-center justify-between gap-2 text-[13px] text-[var(--foreground)]">
@@ -450,7 +437,7 @@ export default function ResponderDashboardPage() {
                 Resolved assignments · {recentlyResolved.length} shown
               </p>
             </div>
-            <PanelLink href={queueHref({ ...filters, status: "Resolved" })}>View all resolved</PanelLink>
+            <PanelLink href={queueHref(filters)}>View all resolved</PanelLink>
           </div>
 
           <div className="overflow-x-auto">
@@ -458,10 +445,9 @@ export default function ResponderDashboardPage() {
               <thead>
                 <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
                   <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Reference / Incident</th>
-                  <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Type</th>
+                  <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Report type</th>
                   <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Category</th>
                   <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Location</th>
-                  <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Status</th>
                   <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Resolved</th>
                   <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium text-right">Action</th>
                 </tr>
@@ -480,9 +466,6 @@ export default function ResponderDashboardPage() {
                     </td>
                     <td className="border-b border-[var(--border)] px-3 py-2.5 text-[var(--muted-foreground)]">{incident.category}</td>
                     <td className="border-b border-[var(--border)] px-3 py-2.5 text-[var(--muted-foreground)]">{incident.location}</td>
-                    <td className="border-b border-[var(--border)] px-3 py-2.5">
-                      <StatusBadge status={incident.status} />
-                    </td>
                     <td className="border-b border-[var(--border)] px-3 py-2.5 text-[var(--muted-foreground)]">
                       {incident.resolvedAt ? new Date(incident.resolvedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Unknown"}
                     </td>

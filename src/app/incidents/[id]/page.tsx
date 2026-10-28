@@ -25,6 +25,7 @@ import {
   IncidentTimelineSection,
 } from "../incident-detail-sections";
 import { IncidentPortalShell } from "../incident-shell";
+import { IncidentMapBanner } from "../incident-map-banner";
 
 function ActionsMenu({ evidenceHref, hasEvidence }: { evidenceHref: string; hasEvidence: boolean }) {
   const [open, setOpen] = useState(false);
@@ -210,6 +211,7 @@ function IncidentDetailsContent() {
     <IncidentPortalShell
       breadcrumbs={breadcrumbs(<span className="font-medium text-[var(--foreground)]">{incident.id}</span>)}
       pageTitle={incident.title}
+      titleClassName="text-[30px] leading-[36px]"
       description={
         <span className="inline-flex flex-wrap items-center gap-x-1.5 text-[13px] text-[var(--muted-foreground)]">
           <span className="font-medium text-[var(--foreground)]">{incident.id}</span>
@@ -223,6 +225,14 @@ function IncidentDetailsContent() {
           <StatusBadge status={incident.status} />
           <IncidentTypeBadge incidentType={incident.incidentType} />
         </>
+      }
+      topContent={
+        <IncidentMapBanner
+          incidentId={incident.id}
+          incidentType={incident.incidentType}
+          location={incident.location}
+          floorArea={incident.floorArea}
+        />
       }
     >
       <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">

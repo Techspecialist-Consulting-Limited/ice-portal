@@ -8,6 +8,7 @@ import {
   UserRound,
 } from "lucide-react";
 import type { IncidentItem, IncidentTimelineEvent } from "@/app/dashboard/mock-data";
+import { incidentTypeLabel } from "./incident-status";
 
 const infoIconTones = {
   danger: "bg-[#fee2e2] text-[#991b1b]",
@@ -73,7 +74,7 @@ export function IncidentOverviewSection({ incident }: { incident: IncidentItem }
           icon={Tag}
           tone="primary"
           label="Incident type"
-          value={incident.incidentType ?? "Not recorded"}
+          value={incidentTypeLabel(incident.incidentType)}
         />
       </div>
 
