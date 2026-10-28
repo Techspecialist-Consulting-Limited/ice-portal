@@ -1,0 +1,358 @@
+.page {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 59.2fr) minmax(0, 40.8fr);
+  min-height: 100svh;
+  overflow: hidden;
+  background: #fdfefd;
+  color: #101828;
+}
+
+.imageWindow {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+}
+
+.backgroundImage {
+  object-fit: cover;
+  object-position: center;
+}
+
+.hero,
+.loginArea {
+  position: relative;
+  z-index: 1;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  padding: 48px clamp(36px, 5vw, 88px);
+}
+
+.heroCopy {
+  max-width: 500px;
+  animation: enterFromLeft 620ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.heroTitle {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(42px, 4vw, 58px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.06;
+  text-wrap: balance;
+}
+
+.heroTitle span {
+  color: #52e5aa;
+}
+
+.heroDescription {
+  max-width: 430px;
+  margin: 22px 0 0;
+  color: rgb(255 255 255 / 78%);
+  font-size: clamp(16px, 1.3vw, 19px);
+  line-height: 1.55;
+  animation: enterFromLeft 620ms 130ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.loginArea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 104px clamp(28px, 4vw, 64px) 96px;
+}
+
+.loginCard {
+  width: min(100%, 470px);
+  padding: clamp(32px, 3.8vw, 52px);
+  border: 1px solid rgb(255 255 255 / 82%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 20px 60px rgb(16 24 40 / 9%);
+  text-align: center;
+  animation: enterFromRight 620ms 80ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.loginLogo {
+  display: block;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 18px;
+  object-fit: contain;
+}
+
+.loginTitle {
+  margin: 0;
+  color: #101828;
+  font-size: clamp(30px, 2.7vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+
+.loginDescription {
+  margin: 8px 0 36px;
+  color: #667085;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.microsoftButton {
+  display: flex;
+  width: 100%;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #087443;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.microsoftButton:focus-visible {
+  outline: 3px solid #42c98d;
+  outline-offset: 3px;
+}
+
+.microsoftButton:hover {
+  background: #06643a;
+}
+
+.microsoftButton:active {
+  transform: translateY(1px);
+}
+
+.microsoftButton span {
+  flex: 1;
+  text-align: center;
+}
+
+.buttonArrow {
+  width: 19px;
+  height: 19px;
+}
+
+.support {
+  position: absolute;
+  top: max(42px, env(safe-area-inset-top));
+  right: clamp(28px, 4vw, 64px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 260px;
+  animation: fadeIn 500ms 220ms ease-out both;
+}
+
+.supportIcon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  color: #087443;
+  stroke-width: 2;
+}
+
+.supportTitle {
+  margin: 0;
+  color: #101828;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.supportLink {
+  display: inline-block;
+  margin: 2px 0 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.supportLink:hover {
+  color: #087443;
+  text-decoration: underline;
+}
+
+.supportLink:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid #087443;
+  outline-offset: 2px;
+}
+
+.footer {
+  position: absolute;
+  right: 0;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #667085;
+  font-size: 11px;
+  animation: fadeIn 500ms 220ms ease-out both;
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footer strong {
+  color: #475467;
+  font-weight: 650;
+}
+
+.footerRule {
+  width: 38px;
+  height: 1px;
+  background: #d0d5dd;
+}
+
+@keyframes enterFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes enterFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 761px) {
+  .page {
+    grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  }
+
+  .hero {
+    padding-right: 28px;
+    padding-left: 36px;
+  }
+
+  .heroTitle {
+    font-size: clamp(40px, 5vw, 52px);
+  }
+
+  .loginArea {
+    padding-right: 26px;
+    padding-left: 26px;
+  }
+}
+
+@media (max-width: 900px) {
+  .page {
+    display: flex;
+    flex-direction: column;
+    overflow: clip;
+  }
+
+  .imageWindow {
+    right: 0;
+    bottom: auto;
+    height: 410px;
+    overflow: hidden;
+  }
+
+  .backgroundImage {
+    object-position: left center;
+  }
+
+  .hero {
+    min-height: 410px;
+    align-items: flex-end;
+    padding: 128px 28px 32px;
+  }
+
+  .heroTitle {
+    max-width: 440px;
+    font-size: clamp(39px, 10vw, 52px);
+  }
+
+  .heroDescription {
+    max-width: 430px;
+    margin-top: 14px;
+    font-size: 15px;
+  }
+
+  .loginArea {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+    padding: 22px 20px max(26px, env(safe-area-inset-bottom));
+    background: #f8fbf9;
+  }
+
+  .support {
+    position: static;
+    align-self: flex-end;
+    max-width: 100%;
+  }
+
+  .loginCard {
+    width: 100%;
+    max-width: 470px;
+    align-self: center;
+    padding: 32px 26px;
+    border-color: #edf1ee;
+    border-radius: 20px;
+    box-shadow: 0 12px 32px rgb(16 24 40 / 7%);
+  }
+
+  .loginDescription {
+    margin-bottom: 28px;
+  }
+
+  .footer {
+    position: static;
+    gap: 12px;
+    margin-top: 2px;
+    font-size: 10px;
+  }
+
+  .footerRule {
+    width: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroCopy,
+  .heroDescription,
+  .loginCard,
+  .support,
+  .footer {
+    animation: none;
+  }
+}
