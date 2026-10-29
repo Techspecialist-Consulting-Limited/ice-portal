@@ -35,6 +35,7 @@ import {
   getFeedStateSnapshot,
   subscribeToFeedState,
 } from "../security-feed/feed-state";
+import { isReviewRequired } from "./incident-status";
 
 export type PortalNavKey = "dashboard" | "incidents" | "alerts" | "security-feed" | "reports" | "profile";
 
@@ -276,6 +277,14 @@ export function IncidentPortalShell({
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const currentUser = useCurrentUser();
+  const incidents = useSyncExternalStore(
+    subscribeToIncidentState,
+    getIncidentStateSnapshot,
+    getIncidentStateServerSnapshot,
+  );
+  // "New" incidents reuse the workflow's own review-required rule (submitted,
+  // not yet moved into review) rather than inventing a second definition.
+  const reviewRequiredCount = incidents.filter((incident) => isReviewRequired(incident.status)).length;
 
   return (
     <main className="h-dvh w-full overflow-hidden bg-[var(--page-bg)] text-[var(--foreground)]">
@@ -304,19 +313,45 @@ export function IncidentPortalShell({
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           {navItems.map(({ key, label, href, icon: Icon }) => {
             const active = key === activeNav;
+            const needsAttention = key === "incidents" && reviewRequiredCount > 0;
+            const attentionLabel =
+              key === "incidents" && needsAttention
+                ? `${label}, ${reviewRequiredCount} submitted ${reviewRequiredCount === 1 ? "incident" : "incidents"} requiring attention`
+                : undefined;
             return (
               <Link
                 key={label}
                 href={href}
                 aria-current={active ? "page" : undefined}
+                aria-label={attentionLabel}
                 onClick={() => setMobileNavOpen(false)}
                 className={cn(
                   "mb-2 flex h-11 items-center gap-2.5 rounded-xl px-3 text-[14px] font-medium transition-colors last:mb-0",
-                  active ? "bg-[#E7F1EA] text-[#1A2B22]" : "text-[#1F2D27] hover:bg-[#F3F7F5] hover:text-[#087443]",
+                  active
+                    ? needsAttention
+                      ? "bg-[#FFF1F2] text-[#991B1B]"
+                      : "bg-[#E7F1EA] text-[#1A2B22]"
+                    : needsAttention
+                      ? "text-[#991B1B] hover:bg-[#FFF1F2] hover:text-[#991B1B]"
+                      : "text-[#1F2D27] hover:bg-[#F3F7F5] hover:text-[#087443]",
                 )}
               >
-                <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-[#087443]" : "text-[#1F2D27]")} strokeWidth={2} />
-                <span>{label}</span>
+                <Icon
+                  className={cn(
+                    "h-[18px] w-[18px] shrink-0",
+                    needsAttention ? "text-[#991B1B]" : active ? "text-[#087443]" : "text-[#1F2D27]",
+                  )}
+                  strokeWidth={2}
+                />
+                <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+                  <span className="truncate">{label}</span>
+                  {needsAttention && (
+                    <span
+                      aria-hidden="true"
+                      className="ice-nav-attention-dot h-2 w-2 shrink-0 rounded-full bg-[#DC2626]"
+                    />
+                  )}
+                </span>
               </Link>
             );
           })}

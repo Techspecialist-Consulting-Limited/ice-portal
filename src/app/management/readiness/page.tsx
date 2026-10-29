@@ -9,10 +9,10 @@ import {
   Bell,
   CalendarDays,
   CheckCheck,
-  ChevronDown,
   Siren,
   UsersRound,
 } from "lucide-react";
+import { IceSelect } from "@/components/ice-select";
 import type { IncidentType } from "@/app/dashboard/mock-data";
 import {
   UNCLASSIFIED_INCIDENT_TYPE,
@@ -403,22 +403,9 @@ export default function ManagementReadinessPage() {
             Follow staff engagement, acknowledgement progress, and incident and alert activity over time.
           </p>
         </div>
-        <label className="min-w-[190px]">
-          <span className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium text-[var(--muted-foreground)]">
-            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-            Reporting period
-          </span>
-          <span className="relative block">
-            <select
-              value={period.value}
-              onChange={(event) => updatePeriod(event.target.value)}
-              className="h-10 w-full appearance-none rounded-lg border border-[var(--input)] bg-[var(--card)] pl-3 pr-9 text-[11px] text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            >
-              {PERIOD_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]" aria-hidden="true" />
-          </span>
-        </label>
+        <div className="min-w-[190px]">
+          <IceSelect label="Reporting period" icon={CalendarDays} value={period.value} options={PERIOD_OPTIONS} onChange={updatePeriod} />
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">

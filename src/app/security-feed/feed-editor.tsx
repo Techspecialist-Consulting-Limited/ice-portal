@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CalendarClock,
-  ChevronDown,
   CircleAlert,
   FilePenLine,
   FileText,
@@ -18,6 +17,7 @@ import {
   Tag,
   TriangleAlert,
 } from "lucide-react";
+import { IceSelect, type IceSelectOption } from "@/components/ice-select";
 import type {
   AlertShareability,
   FeedItem,
@@ -147,27 +147,29 @@ function formSignature(form: FormState) {
 
 function SelectControl({
   id,
+  label,
   value,
+  options,
   onChange,
-  children,
+  invalid,
 }: {
   id: string;
+  label: string;
   value: string;
+  options: IceSelectOption[];
   onChange: (value: string) => void;
-  children: React.ReactNode;
+  invalid?: boolean;
 }) {
   return (
-    <span className="relative block">
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 pr-9 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[var(--primary)] focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1"
-      >
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute inset-y-0 right-3 my-auto h-4 w-4 text-[var(--muted-foreground)]" strokeWidth={2} />
-    </span>
+    <IceSelect
+      id={id}
+      label={label}
+      hideLabel
+      value={value}
+      options={options}
+      onChange={onChange}
+      invalid={invalid}
+    />
   );
 }
 
@@ -651,12 +653,20 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
                     Category <span className="text-[#991b1b]">*</span>
                   </label>
                   <div className="mt-2">
-                    <SelectControl id="feed-category" value={category} onChange={(value) => { setCategory(value); if (errors.category) setErrors((prev) => ({ ...prev, category: undefined })); }}>
-                      <option value="" disabled>Choose a category</option>
-                      {categoryOptions.map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </SelectControl>
+                    <SelectControl
+                      id="feed-category"
+                      label="Category"
+                      invalid={Boolean(errors.category)}
+                      value={category}
+                      onChange={(value) => {
+                        setCategory(value);
+                        if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
+                      }}
+                      options={[
+                        { value: "", label: "Choose a category", disabled: true },
+                        ...categoryOptions.map((value) => ({ value, label: value })),
+                      ]}
+                    />
                   </div>
                   <FieldError id="feed-category-error" message={errors.category} />
                 </div>
@@ -666,22 +676,32 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
                     Source <span className="text-[#991b1b]">*</span>
                   </label>
                   <div className="mt-2">
-                    <SelectControl id="feed-source" value={sourceName} onChange={(value) => { setSourceName(value); if (errors.sourceName) setErrors((prev) => ({ ...prev, sourceName: undefined })); }}>
-                      <option value="" disabled>Choose a source</option>
-                      {hasCustomSource && item?.source && (
-                        <option value={item.source}>{item.source} (recorded)</option>
-                      )}
-                      <optgroup label="Internal sources">
-                        {internalSources.map((entry) => (
-                          <option key={entry.id} value={entry.name}>{entry.name}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Approved external sources">
-                        {externalSources.map((entry) => (
-                          <option key={entry.id} value={entry.name}>{entry.name}</option>
-                        ))}
-                      </optgroup>
-                    </SelectControl>
+                    <SelectControl
+                      id="feed-source"
+                      label="Source"
+                      invalid={Boolean(errors.sourceName)}
+                      value={sourceName}
+                      onChange={(value) => {
+                        setSourceName(value);
+                        if (errors.sourceName) setErrors((prev) => ({ ...prev, sourceName: undefined }));
+                      }}
+                      options={[
+                        { value: "", label: "Choose a source", disabled: true },
+                        ...(hasCustomSource && item?.source
+                          ? [{ value: item.source, label: `${item.source} (recorded)` }]
+                          : []),
+                        ...internalSources.map((entry) => ({
+                          value: entry.name,
+                          label: entry.name,
+                          group: "Internal sources",
+                        })),
+                        ...externalSources.map((entry) => ({
+                          value: entry.name,
+                          label: entry.name,
+                          group: "Approved external sources",
+                        })),
+                      ]}
+                    />
                   </div>
                   <FieldError id="feed-source-error" message={errors.sourceName} />
                   {selectedSource && (
@@ -715,11 +735,13 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
                     Shareability
                   </label>
                   <div className="mt-2">
-                    <SelectControl id="feed-shareability" value={shareability} onChange={(value) => setShareability(value as AlertShareability)}>
-                      {SHAREABILITY_OPTIONS.map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </SelectControl>
+                    <SelectControl
+                      id="feed-shareability"
+                      label="Shareability"
+                      value={shareability}
+                      onChange={(value) => setShareability(value as AlertShareability)}
+                      options={SHAREABILITY_OPTIONS.map((value) => ({ value, label: value }))}
+                    />
                   </div>
                   <p className="mt-1.5 text-[12px] text-[var(--muted-foreground)]">
                     How far this content may be shared. Recorded as a label only &mdash; sharing is not enforced.
@@ -734,12 +756,16 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
                     Optional. Only set where the item carries a severity.
                   </p>
                   <div className="mt-2">
-                    <SelectControl id="feed-priority" value={priority} onChange={(value) => setPriority(value as FeedPriority | "")}>
-                      <option value="">No priority</option>
-                      {PRIORITY_OPTIONS.map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </SelectControl>
+                    <SelectControl
+                      id="feed-priority"
+                      label="Priority"
+                      value={priority}
+                      onChange={(value) => setPriority(value as FeedPriority | "")}
+                      options={[
+                        { value: "", label: "No priority" },
+                        ...PRIORITY_OPTIONS.map((value) => ({ value, label: value })),
+                      ]}
+                    />
                   </div>
                 </div>
               </div>

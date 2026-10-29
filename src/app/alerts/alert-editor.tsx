@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CalendarClock,
-  ChevronDown,
   CircleAlert,
   ClipboardCheck,
   FilePenLine,
@@ -19,6 +18,7 @@ import {
   TriangleAlert,
   UsersRound,
 } from "lucide-react";
+import { IceSelect, type IceSelectOption } from "@/components/ice-select";
 import type { AlertItem } from "@/app/dashboard/mock-data";
 import {
   getAlertStateServerSnapshot,
@@ -88,27 +88,29 @@ function alertItemSignature(item: AlertItem) {
 
 function SelectControl({
   id,
+  label,
   value,
+  options,
   onChange,
-  children,
+  invalid,
 }: {
   id: string;
+  label: string;
   value: string;
+  options: IceSelectOption[];
   onChange: (value: string) => void;
-  children: React.ReactNode;
+  invalid?: boolean;
 }) {
   return (
-    <span className="relative block">
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 pr-9 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[var(--primary)] focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1"
-      >
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute inset-y-0 right-3 my-auto h-4 w-4 text-[var(--muted-foreground)]" strokeWidth={2} />
-    </span>
+    <IceSelect
+      id={id}
+      label={label}
+      hideLabel
+      value={value}
+      options={options}
+      onChange={onChange}
+      invalid={invalid}
+    />
   );
 }
 
@@ -548,12 +550,17 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                     Category <span className="text-[#991b1b]">*</span>
                   </label>
                   <div className="mt-2">
-                    <SelectControl id="alert-category" value={fields.category} onChange={(value) => update("category", value)}>
-                      <option value="" disabled>Choose a category</option>
-                      {categoryOptions.map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </SelectControl>
+                    <SelectControl
+                      id="alert-category"
+                      label="Category"
+                      invalid={Boolean(errors.category)}
+                      value={fields.category}
+                      onChange={(value) => update("category", value)}
+                      options={[
+                        { value: "", label: "Choose a category", disabled: true },
+                        ...categoryOptions.map((value) => ({ value, label: value })),
+                      ]}
+                    />
                   </div>
                   <FieldError id="alert-category-error" message={errors.category} />
                 </div>
@@ -563,12 +570,17 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                     Priority <span className="text-[#991b1b]">*</span>
                   </label>
                   <div className="mt-2">
-                    <SelectControl id="alert-priority" value={fields.priority} onChange={(value) => update("priority", value as AlertDraftFields["priority"])}>
-                      <option value="" disabled>Choose a priority</option>
-                      {ALERT_PRIORITY_OPTIONS.map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </SelectControl>
+                    <SelectControl
+                      id="alert-priority"
+                      label="Priority"
+                      invalid={Boolean(errors.priority)}
+                      value={fields.priority}
+                      onChange={(value) => update("priority", value as AlertDraftFields["priority"])}
+                      options={[
+                        { value: "", label: "Choose a priority", disabled: true },
+                        ...ALERT_PRIORITY_OPTIONS.map((value) => ({ value, label: value })),
+                      ]}
+                    />
                   </div>
                   <FieldError id="alert-priority-error" message={errors.priority} />
                 </div>
@@ -578,12 +590,17 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                     Source <span className="text-[#991b1b]">*</span>
                   </label>
                   <div className="mt-2">
-                    <SelectControl id="alert-source" value={fields.source} onChange={(value) => update("source", value)}>
-                      <option value="" disabled>Choose a source</option>
-                      {sourceOptions.map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </SelectControl>
+                    <SelectControl
+                      id="alert-source"
+                      label="Source"
+                      invalid={Boolean(errors.source)}
+                      value={fields.source}
+                      onChange={(value) => update("source", value)}
+                      options={[
+                        { value: "", label: "Choose a source", disabled: true },
+                        ...sourceOptions.map((value) => ({ value, label: value })),
+                      ]}
+                    />
                   </div>
                   <FieldError id="alert-source-error" message={errors.source} />
                 </div>
@@ -593,11 +610,13 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                     Shareability
                   </label>
                   <div className="mt-2">
-                    <SelectControl id="alert-shareability" value={fields.shareability} onChange={(value) => update("shareability", value as AlertDraftFields["shareability"])}>
-                      {ALERT_SHAREABILITY_OPTIONS.map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </SelectControl>
+                    <SelectControl
+                      id="alert-shareability"
+                      label="Shareability"
+                      value={fields.shareability}
+                      onChange={(value) => update("shareability", value as AlertDraftFields["shareability"])}
+                      options={ALERT_SHAREABILITY_OPTIONS.map((value) => ({ value, label: value }))}
+                    />
                   </div>
                   <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)]">
                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />

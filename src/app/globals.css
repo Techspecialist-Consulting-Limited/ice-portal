@@ -84,3 +84,74 @@ textarea {
 ::selection {
   background: rgba(8, 116, 67, 0.18);
 }
+
+/* Custom filter select panel — scoped so it cannot affect other portal surfaces. */
+@keyframes ice-select-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ice-select-panel {
+  animation: ice-select-in 140ms ease-out;
+  transform-origin: top center;
+}
+
+/* SOS report-type urgency dot — a slow, low-amplitude breath on the dot only so
+   the badge background, icon, and label stay steady. */
+@keyframes ice-sos-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(0.85);
+  }
+}
+
+.ice-sos-dot {
+  animation: ice-sos-breathe 2.4s ease-in-out infinite;
+}
+
+/* Sidebar urgency dot for the Incidents nav item — same restrained breath, only
+   on the dot so the row, icon, and label stay steady. */
+@keyframes ice-nav-attention-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.85);
+  }
+}
+
+.ice-nav-attention-dot {
+  animation: ice-nav-attention-breathe 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ice-select-panel {
+    animation: none;
+  }
+
+  .ice-sos-dot {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .ice-nav-attention-dot {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

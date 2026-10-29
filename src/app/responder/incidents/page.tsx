@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
+import { IceSelect, type IceSelectOption } from "@/components/ice-select";
 import {
   getIncidentStateServerSnapshot,
   getIncidentStateSnapshot,
@@ -29,6 +30,20 @@ import { canResponderAccessIncident } from "../responder-access";
 import { useCurrentUser } from "../../auth/current-user-provider";
 
 const INCIDENT_PAGE_SIZE = 10;
+
+const PERIOD_OPTIONS: IceSelectOption[] = [
+  { value: "all", label: "All time" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "24h", label: "Last 24 hours" },
+];
+
+const REPORT_TYPE_OPTIONS: IceSelectOption[] = [
+  { value: "all", label: "All report types" },
+  { value: "SOS", label: "SOS" },
+  { value: "Emergency Report", label: "Emergency Report" },
+  { value: "Incident Report", label: "Incident Report" },
+];
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -88,11 +103,17 @@ function ResponderIncidentsPageInner() {
     getIncidentStateServerSnapshot,
   );
   const categoryOptions = useMemo(
-    () => ["All categories", ...Array.from(new Set(incidentList.map((incident) => incident.category))).sort()],
+    () => [
+      { value: "all", label: "All categories" },
+      ...Array.from(new Set(incidentList.map((incident) => incident.category))).sort().map((value) => ({ value, label: value })),
+    ],
     [incidentList],
   );
   const locationOptions = useMemo(
-    () => ["All locations", ...Array.from(new Set(incidentList.map((incident) => incident.location))).sort()],
+    () => [
+      { value: "all", label: "All locations" },
+      ...Array.from(new Set(incidentList.map((incident) => incident.location))).sort().map((value) => ({ value, label: value })),
+    ],
     [incidentList],
   );
 
@@ -187,30 +208,30 @@ function ResponderIncidentsPageInner() {
         <div className="mb-5 grid gap-3 rounded-[16px] bg-white p-3 shadow-[var(--shadow-soft)] md:grid-cols-2 xl:grid-cols-4">
           <FilterField
             label="Reporting period"
-            value={period === "7d" ? "Last 7 days" : period === "24h" ? "Last 24 hours" : period === "30d" ? "Last 30 days" : "All time"}
+            value={period}
             icon={CalendarDays}
-            options={["All time", "Last 30 days", "Last 7 days", "Last 24 hours"]}
-            onChange={(value) => applyFilters({ period: value === "Last 7 days" ? "7d" : value === "Last 24 hours" ? "24h" : value === "Last 30 days" ? "30d" : "all" })}
+            options={PERIOD_OPTIONS}
+            onChange={(value) => applyFilters({ period: value })}
           />
           <FilterField
             label="Category"
-            value={category === "all" ? "All categories" : category}
+            value={category}
             onChange={(value) => applyFilters({ category: value })}
             options={categoryOptions}
             icon={ClipboardList}
           />
           <FilterField
             label="Location"
-            value={location === "all" ? "All locations" : location}
+            value={location}
             onChange={(value) => applyFilters({ location: value })}
             options={locationOptions}
             icon={MapPin}
           />
           <FilterField
             label="Report type"
-            value={incidentType === "all" ? "All report types" : incidentType}
+            value={incidentType}
             onChange={(value) => applyFilters({ incidentType: value })}
-            options={["All report types", "SOS", "Emergency Report", "Incident Report"]}
+            options={REPORT_TYPE_OPTIONS}
             icon={FileWarning}
           />
         </div>
@@ -374,47 +395,17 @@ function FilterField({
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: IceSelectOption[];
   onChange?: (value: string) => void;
   icon: typeof MapPin;
 }) {
   return (
-    <label className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--muted-foreground)]">{label}</span>
-      <div className="relative">
-        <select
-          value={
-            value === "All categories" ? "all" :
-            value === "All statuses" ? "all" :
-            value === "All locations" ? "all" :
-            value === "All report types" ? "all" :
-            value === "Resolved / closed" ? "resolved" :
-            value === "Last 30 days" ? "Last 30 days" :
-            value
-          }
-          onChange={(event) => onChange?.(event.target.value === "all" ? "all" : event.target.value)}
-          className="h-11 w-full appearance-none rounded-xl border border-[var(--border)] bg-white px-3 pr-8 text-sm text-[var(--foreground)] shadow-[var(--shadow-soft)] outline-none focus:border-[var(--primary)]"
-        >
-          {options.map((option) => {
-            const optionValue =
-              option === "All categories" ? "all" :
-              option === "All statuses" ? "all" :
-              option === "All locations" ? "all" :
-              option === "All report types" ? "all" :
-              option === "Resolved / closed" ? "resolved" :
-              option;
-
-            return (
-              <option key={option} value={optionValue}>
-                {option}
-              </option>
-            );
-          })}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-          <Icon className="h-4 w-4 text-[var(--muted-foreground)]" />
-        </span>
-      </div>
-    </label>
+    <IceSelect
+      label={label}
+      icon={Icon}
+      value={value}
+      options={options}
+      onChange={(next) => onChange?.(next)}
+    />
   );
 }

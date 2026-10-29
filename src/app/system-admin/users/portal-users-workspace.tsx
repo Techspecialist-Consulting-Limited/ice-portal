@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode, useSyncExternalStore } from "react";
+import { useMemo, useState, type FormEvent, useSyncExternalStore } from "react";
 import {
   Ban,
   Check,
@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useCurrentUser } from "../../auth/current-user-provider";
+import { IceSelect } from "@/components/ice-select";
 import {
   getCustomRoleServerSnapshot,
   getCustomRoleSnapshot,
@@ -117,21 +118,6 @@ function ProfileDetails({ account }: { account: PortalAccount }) {
         </div>
       </section>
     </>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[11px] font-medium text-[var(--foreground)]">{label}</span>
-      {children}
-    </label>
   );
 }
 
@@ -291,27 +277,37 @@ export function PortalUsersWorkspace({ initialRole }: { initialRole?: string }) 
                 className={`${inputClass} pl-9`}
               />
             </label>
-            <label className="block">
-              <span className="sr-only">Filter by role</span>
-              <select value={roleFilter} onChange={(event) => {
-                setRoleFilter(event.target.value);
-                setCurrentPage(1);
-              }} className={`${inputClass} min-w-[180px]`}>
-                <option value="all">All roles</option>
-                {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
-              </select>
-            </label>
-            <label className="block">
-              <span className="sr-only">Filter by status</span>
-              <select value={statusFilter} onChange={(event) => {
-                setStatusFilter(event.target.value);
-                setCurrentPage(1);
-              }} className={`${inputClass} min-w-[140px]`}>
-                <option value="all">All statuses</option>
-                <option value="Active">Active</option>
-                <option value="Suspended">Suspended</option>
-              </select>
-            </label>
+            <div className="min-w-0 sm:col-span-2 lg:w-[250px]">
+              <IceSelect
+                hideLabel
+                label="Filter by role"
+                value={roleFilter}
+                options={[
+                  { value: "all", label: "All roles" },
+                  ...roleOptions.map((role) => ({ value: role, label: role })),
+                ]}
+                onChange={(value) => {
+                  setRoleFilter(value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+            <div className="min-w-0 lg:w-[170px]">
+              <IceSelect
+                hideLabel
+                label="Filter by status"
+                value={statusFilter}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "Active", label: "Active" },
+                  { value: "Suspended", label: "Suspended" },
+                ]}
+                onChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -508,18 +504,18 @@ export function PortalUsersWorkspace({ initialRole }: { initialRole?: string }) 
                 <section aria-labelledby="access-role-heading" className="border-t border-[var(--border)] pt-4">
                   <h3 id="access-role-heading" className="mb-3 text-[12px] font-semibold text-[var(--foreground)]">Portal access</h3>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Assigned role">
-                      <select
-                        value={form.role}
-                        onChange={(event) => {
-                          const role = roleOptions.find((option) => option === event.target.value);
-                          if (role && role !== STAFF_ROLE) setForm((current) => ({ ...current, role }));
-                        }}
-                        className={inputClass}
-                      >
-                        {roleOptions.filter((role) => role !== STAFF_ROLE).map((role) => <option key={role} value={role}>{role}</option>)}
-                      </select>
-                    </Field>
+                    <IceSelect
+                      id="portal-user-role"
+                      label="Assigned role"
+                      value={form.role}
+                      options={roleOptions
+                        .filter((role) => role !== STAFF_ROLE)
+                        .map((role) => ({ value: role, label: role }))}
+                      onChange={(value) => {
+                        const role = roleOptions.find((option) => option === value);
+                        if (role && role !== STAFF_ROLE) setForm((current) => ({ ...current, role }));
+                      }}
+                    />
                     <div>
                       <span className="mb-1.5 block text-[11px] font-medium text-[var(--foreground)]">Account status</span>
                       <div className="flex h-10 items-center"><StatusBadge status={dialog.account.status} /></div>

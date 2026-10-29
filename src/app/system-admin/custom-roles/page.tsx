@@ -15,6 +15,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+import { IceSelect } from "@/components/ice-select";
 import {
   INCIDENT_RESPONDER,
   MANAGEMENT_USER,
@@ -283,17 +284,17 @@ export default function SystemAdminCustomRolesPage() {
 
             <form onSubmit={saveRole} className="space-y-4">
               {editor.type === "create" && (
-                <label className="block">
-                  <span className="mb-1.5 block text-[11px] font-medium text-[var(--foreground)]">Start from an existing role (optional)</span>
-                  <span className="relative block">
-                    <Copy className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]" aria-hidden="true" />
-                    <select value={copyFrom} onChange={(event) => applyPreset(event.target.value)} className="h-10 w-full rounded-lg border border-[var(--input)] bg-[var(--card)] pl-9 pr-3 text-[11px] text-[var(--foreground)]">
-                      <option value="">Start with no permissions</option>
-                      {BUILT_IN_ROLES.map(({ name: roleName }) => <option key={roleName} value={roleName}>Copy {roleName}</option>)}
-                      {snapshot.roles.map((role) => <option key={role.id} value={role.name}>Copy {role.name}</option>)}
-                    </select>
-                  </span>
-                </label>
+                <IceSelect
+                  label="Start from an existing role (optional)"
+                  icon={Copy}
+                  value={copyFrom}
+                  options={[
+                    { value: "", label: "Start with no permissions" },
+                    ...BUILT_IN_ROLES.map(({ name: roleName }) => ({ value: roleName, label: `Copy ${roleName}` })),
+                    ...snapshot.roles.map((role) => ({ value: role.name, label: `Copy ${role.name}` })),
+                  ]}
+                  onChange={applyPreset}
+                />
               )}
 
               <div className="grid gap-4 sm:grid-cols-2">

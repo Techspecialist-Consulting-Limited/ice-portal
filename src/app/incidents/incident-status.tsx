@@ -1,5 +1,5 @@
 import type { IncidentItem, IncidentStatus, IncidentType } from "@/app/dashboard/mock-data";
-import { BellRing, TriangleAlert, ClipboardList, type LucideIcon } from "lucide-react";
+import { Siren, TriangleAlert, ClipboardList, type LucideIcon } from "lucide-react";
 
 export type IncidentTone = "danger" | "warning" | "info" | "success" | "neutral" | "primary";
 export type IncidentPriority = IncidentItem["priority"];
@@ -28,9 +28,9 @@ const priorityToneMap: Record<IncidentPriority, IncidentTone> = {
 // for each canonical report type, as specified in the approved visual reference.
 const reportTypeConfig: Record<IncidentType, { icon: LucideIcon; bg: string; text: string }> = {
   SOS: {
-    icon: BellRing,
-    bg: "#E5F0FF",
-    text: "#175CD3",
+    icon: Siren,
+    bg: "#C62828",
+    text: "#FFFFFF",
   },
   "Emergency Report": {
     icon: TriangleAlert,
@@ -102,18 +102,23 @@ export function IncidentTypeBadge({
     return <ToneBadge label={UNCLASSIFIED_INCIDENT_TYPE} tone="neutral" className={className} />;
   }
   const config = reportTypeConfig[incidentType];
-
   const Icon = config.icon;
+  // SOS is the only report type that carries an urgency indicator, rendered last
+  // so the order is always icon -> label -> dot.
+  const isSos = incidentType === "SOS";
+
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
+        isSos && "whitespace-nowrap pr-3",
         className
       )}
       style={{ backgroundColor: config.bg, color: config.text }}
     >
-      <Icon aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
+      <Icon aria-hidden="true" className={cn("h-3.5 w-3.5", isSos && "shrink-0")} strokeWidth={2} />
       <span>{incidentType}</span>
+      {isSos && <span aria-hidden="true" className="ice-sos-dot h-2 w-2 shrink-0 rounded-full bg-white" />}
     </span>
   );
 }

@@ -11,7 +11,6 @@ import {
   ArrowUpDown,
   Building2,
   CalendarClock,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleCheck,
@@ -22,6 +21,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+import { IceSelect } from "@/components/ice-select";
 import type { AlertItem } from "@/app/dashboard/mock-data";
 import {
   getAlertStateServerSnapshot,
@@ -127,30 +127,7 @@ function FilterSelect({
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
 }) {
-  return (
-    <label className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--muted-foreground)]">{label}</span>
-      <span className="relative block">
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-          <Icon className="h-4 w-4 text-[var(--muted-foreground)]" />
-        </span>
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-10 w-full appearance-none rounded-xl border border-[var(--border)] bg-white pl-9 pr-9 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[var(--primary)] focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-          <ChevronDown className="h-4 w-4 text-[var(--muted-foreground)]" />
-        </span>
-      </span>
-    </label>
-  );
+  return <IceSelect label={label} icon={Icon} value={value} options={options} onChange={onChange} />;
 }
 
 function AcknowledgementStatusBadge({ status }: { status: RecipientAcknowledgementStatus }) {

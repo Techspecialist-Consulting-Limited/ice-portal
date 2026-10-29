@@ -1,6 +1,7 @@
 import type { AlertItem, IncidentItem } from "@/app/dashboard/mock-data";
 import { alertAcknowledgementRate, alertOutstanding, formatAlertRate, formatAlertTimestamp } from "@/app/alerts/alert-status";
-import type { ReportDateRange, ReportFilterKey, ReportKind } from "./report-types";
+import { incidentTypeLabel } from "@/app/incidents/incident-status";
+import type { ReportColumn, ReportDateRange, ReportFilterKey, ReportKind } from "./report-types";
 
 export type ReportRecord = {
   cells: Record<string, string>;
@@ -11,11 +12,15 @@ export type ReportRecord = {
   metrics?: { outstanding?: number; acknowledgementUnavailable?: boolean };
   /** Epoch ms used for the reporting-period filter; null when not derivable. */
   timestamp: number | null;
+  /** Lower-cased text the search box matches against, never rendered. */
+  searchText: string;
 };
 
 export type ReportFilters = Partial<Record<ReportFilterKey, string>>;
 
 export type ReportStat = { key: string; label: string; value: number | string };
+
+export type ReportSortState = { key: string; direction: "asc" | "desc" };
 
 const MONTHS_SHORT: Record<string, number> = {
   Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
@@ -28,6 +33,10 @@ const MONTHS_LONG = [
 ];
 
 const DAY = 24 * 60 * 60 * 1000;
+
+function searchText(parts: Array<string | undefined>): string {
+  return parts.filter((part): part is string => Boolean(part)).join(" ").toLowerCase();
+}
 
 // Incident dates are stored as display strings ("06 Oct 2026 · 09:58"), so parse
 // the date part back to a stable epoch (UTC) for period filtering. Mirrors the
@@ -90,6 +99,16 @@ export function buildAlertRecords(alerts: AlertItem[]): ReportRecord[] {
           : { outstanding }
         : { outstanding: 0 },
       timestamp: Number.isNaN(parsed) ? null : parsed,
+      searchText: searchText([
+        alert.id,
+        alert.title,
+        alert.summary,
+        alert.category,
+        alert.location,
+        alert.audience,
+        alert.createdBy,
+        alert.notificationType,
+      ]),
     };
   });
 }
@@ -97,10 +116,12 @@ export function buildAlertRecords(alerts: AlertItem[]): ReportRecord[] {
 export function buildIncidentRecords(incidents: IncidentItem[]): ReportRecord[] {
   return incidents.map((incident) => {
     const assigned = [incident.assignment?.assignee, incident.assignment?.team].filter(Boolean).join(" · ");
+    const reportType = incidentTypeLabel(incident.incidentType);
     return {
       cells: {
         reference: incident.id,
         title: incident.title,
+        reportType,
         category: incident.category,
         priority: incident.priority,
         status: incident.status,
@@ -112,15 +133,28 @@ export function buildIncidentRecords(incidents: IncidentItem[]): ReportRecord[] 
         review: incident.reviewStatus,
       },
       filters: {
+        reportType,
         category: incident.category,
         status: incident.status,
         priority: incident.priority,
+        reviewStatus: incident.reviewStatus,
         department: incident.department,
         location: incident.location,
-        assignee: incident.assignment?.team ?? incident.assignment?.assignee,
+        assignee: assigned || "Unassigned",
       },
       href: `/incidents/${encodeURIComponent(incident.id)}`,
       timestamp: parseIncidentDate(incident.reported),
+      searchText: searchText([
+        incident.id,
+        incident.title,
+        incident.description,
+        incident.category,
+        incident.location,
+        incident.reporter,
+        incident.department,
+        assigned,
+        reportType,
+      ]),
     };
   });
 }
@@ -145,10 +179,20 @@ export function buildEscalationRecords(alerts: AlertItem[], incidents: IncidentI
           },
           filters: {
             escalationType: "Incident",
+            escalationStatus: event.title,
             priority: incident.priority,
+            targetGroup: "Not recorded",
           },
           href: `/incidents/${encodeURIComponent(incident.id)}`,
           timestamp: parseIncidentDate(event.time) ?? (Date.parse(event.time) || null),
+          searchText: searchText([
+            incident.id,
+            incident.title,
+            event.title,
+            event.detail,
+            "Incident",
+            incident.priority,
+          ]),
         })),
     );
 
@@ -156,24 +200,41 @@ export function buildEscalationRecords(alerts: AlertItem[], incidents: IncidentI
     .flatMap((alert) =>
       (alert.history ?? [])
         .filter((event) => /escalat/i.test(event.title))
-        .map((event) => ({
-          cells: {
-            reference: alert.id,
-            type: "Alert",
-            subject: alert.title,
-            target: event.escalation?.target ?? "Not recorded",
-            priority: alert.priority,
-            reason: event.escalation?.reason || event.detail || "Not recorded",
-            escalatedAt: event.time || "Not available",
-            status: event.title,
-          },
-          filters: {
-            escalationType: "Alert",
-            priority: alert.priority,
-          },
-          href: `/alerts/${encodeURIComponent(alert.id)}`,
-          timestamp: parseIncidentDate(event.time) ?? (Date.parse(event.time) || null),
-        })),
+        .map((event) => {
+          const target = event.escalation?.target ?? "Not recorded";
+          const status = event.escalation?.status ?? event.title;
+          return {
+            cells: {
+              reference: alert.id,
+              type: "Alert",
+              subject: alert.title,
+              target,
+              priority: alert.priority,
+              reason: event.escalation?.reason || event.detail || "Not recorded",
+              escalatedAt: event.time || "Not available",
+              status,
+            },
+            filters: {
+              escalationType: "Alert",
+              escalationStatus: status,
+              priority: alert.priority,
+              targetGroup: target,
+            },
+            href: `/alerts/${encodeURIComponent(alert.id)}`,
+            timestamp: parseIncidentDate(event.time) ?? (Date.parse(event.time) || null),
+            searchText: searchText([
+              alert.id,
+              alert.title,
+              event.title,
+              event.detail,
+              event.escalation?.reason,
+              event.escalation?.target,
+              event.escalation?.status,
+              "Alert",
+              alert.priority,
+            ]),
+          };
+        }),
     );
 
   return [...fromIncidents, ...fromAlerts];
@@ -182,6 +243,7 @@ export function buildEscalationRecords(alerts: AlertItem[], incidents: IncidentI
 export type ResolvedRange = { from: number | null; to: number | null; error: string | null };
 
 export function resolveDateRange(range: ReportDateRange, now: number | null): ResolvedRange {
+  if (range.preset === "all") return { from: null, to: null, error: null };
   if (range.preset === "7d") return { from: now === null ? null : now - 7 * DAY, to: null, error: null };
   if (range.preset === "30d") return { from: now === null ? null : now - 30 * DAY, to: null, error: null };
   if (range.preset === "this_month") {
@@ -211,6 +273,7 @@ function formatIsoDate(iso: string): string {
 }
 
 export function dateRangeLabel(range: ReportDateRange): string {
+  if (range.preset === "all") return "All time";
   if (range.preset === "7d") return "Last 7 days";
   if (range.preset === "30d") return "Last 30 days";
   if (range.preset === "this_month") return "This month";
@@ -227,7 +290,10 @@ const FILTER_FIELDS: ReportFilterKey[] = [
   "ack",
   "department",
   "assignee",
+  "reportType",
+  "reviewStatus",
   "escalationType",
+  "escalationStatus",
   "targetGroup",
 ];
 
@@ -235,7 +301,10 @@ export function filterRecords(
   records: ReportRecord[],
   filters: ReportFilters,
   range: ResolvedRange,
+  query = "",
 ): ReportRecord[] {
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
   return records.filter((record) => {
     if (range.from !== null && (record.timestamp === null || record.timestamp < range.from)) return false;
     if (range.to !== null && (record.timestamp === null || record.timestamp > range.to)) return false;
@@ -244,6 +313,7 @@ export function filterRecords(
       if (!wanted || wanted === "all") continue;
       if (record.filters[key] !== wanted) return false;
     }
+    if (tokens.length > 0 && !tokens.every((token) => record.searchText.includes(token))) return false;
     return true;
   });
 }
@@ -253,6 +323,28 @@ export function derivedOptions(records: ReportRecord[], key: ReportFilterKey, al
     new Set(records.map((record) => record.filters[key]).filter((value): value is string => Boolean(value))),
   ).sort((a, b) => a.localeCompare(b));
   return [{ value: "all", label: allLabel }, ...values.map((value) => ({ value, label: value }))];
+}
+
+// Sorting is applied after filtering so page ranges and the exported workbook
+// always follow the order the user sees in the table.
+export function sortRecords(
+  records: ReportRecord[],
+  sort: ReportSortState | null,
+  columns: ReportColumn[],
+): ReportRecord[] {
+  if (!sort) return records;
+  const column = columns.find((item) => item.key === sort.key);
+  if (!column) return records;
+  const direction = sort.direction === "asc" ? 1 : -1;
+
+  return [...records].sort((a, b) => {
+    if (column.sort === "date") {
+      const aTime = a.timestamp ?? (sort.direction === "asc" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY);
+      const bTime = b.timestamp ?? (sort.direction === "asc" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY);
+      return (aTime - bTime) * direction;
+    }
+    return (a.cells[sort.key] ?? "").localeCompare(b.cells[sort.key] ?? "", undefined, { numeric: true }) * direction;
+  });
 }
 
 // Summary metrics are derived from the exact filtered row set, so they always
@@ -291,20 +383,17 @@ export function buildSummary(kind: ReportKind, records: ReportRecord[]): ReportS
     }
     return stats;
   }
-  if (kind === "escalation") {
-    return [
-      { key: "total", label: "Escalations returned", value: total },
-      {
-        key: "incident",
-        label: "Incident escalations",
-        value: records.filter((record) => record.filters.escalationType === "Incident").length,
-      },
-      {
-        key: "alert",
-        label: "Alert escalations",
-        value: records.filter((record) => record.filters.escalationType === "Alert").length,
-      },
-    ];
-  }
-  return [];
+  return [
+    { key: "total", label: "Escalations returned", value: total },
+    {
+      key: "incident",
+      label: "Incident escalations",
+      value: records.filter((record) => record.filters.escalationType === "Incident").length,
+    },
+    {
+      key: "alert",
+      label: "Alert escalations",
+      value: records.filter((record) => record.filters.escalationType === "Alert").length,
+    },
+  ];
 }

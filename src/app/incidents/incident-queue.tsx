@@ -6,6 +6,7 @@ import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
+  Building2,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
@@ -13,13 +14,25 @@ import {
   ClipboardList,
   Clock3,
   Download,
+  FileText,
   FileWarning,
+  Flame,
+  HeartPulse,
+  Laptop,
+  LayoutGrid,
   MapPin,
+  Megaphone,
+  Plane,
   Search,
+  Settings,
+  Shield,
   ShieldCheck,
   SlidersHorizontal,
+  Tag,
   X,
+  type LucideIcon,
 } from "lucide-react";
+import { IceSelect, type IceSelectOption } from "@/components/ice-select";
 import {
   getIncidentStateServerSnapshot,
   getIncidentStateSnapshot,
@@ -57,7 +70,55 @@ const INCIDENT_PAGE_SIZE = 10;
 // "All statuses" and "Resolved / closed" are grouped views; every other entry is a
 // concrete IncidentStatus so dashboard status drill-downs (?status=Resolved, etc.)
 // land on a selected, matching filter instead of a blank select.
-const INCIDENT_STATUS_OPTIONS = ["All statuses", "Submitted", "Under review", "Verified", "Rejected", "Escalated", "Broadcast", "Resolved", "Closed", "Resolved / closed"];
+const INCIDENT_STATUS_OPTIONS: IceSelectOption[] = [
+  { value: "all", label: "All statuses" },
+  { value: "Submitted", label: "Submitted" },
+  { value: "Under review", label: "Under review" },
+  { value: "Verified", label: "Verified" },
+  { value: "Rejected", label: "Rejected" },
+  { value: "Escalated", label: "Escalated" },
+  { value: "Broadcast", label: "Broadcast" },
+  { value: "Resolved", label: "Resolved" },
+  { value: "Closed", label: "Closed" },
+  { value: "resolved", label: "Resolved / closed" },
+];
+
+const PERIOD_OPTIONS: IceSelectOption[] = [
+  { value: "all", label: "All time" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "24h", label: "Last 24 hours" },
+];
+
+const PRIORITY_OPTIONS: IceSelectOption[] = [
+  { value: "all", label: "All priorities" },
+  { value: "Critical", label: "Critical" },
+  { value: "Advisory", label: "Advisory" },
+  { value: "Informational", label: "Informational" },
+];
+
+const REPORT_TYPE_OPTIONS: IceSelectOption[] = [
+  { value: "all", label: "All report types" },
+  { value: "SOS", label: "SOS" },
+  { value: "Emergency Report", label: "Emergency Report" },
+  { value: "Incident Report", label: "Incident Report" },
+];
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Facilities: Building2,
+  "Fire & safety": Flame,
+  ICT: Laptop,
+  Medical: HeartPulse,
+  Operations: Settings,
+  Security: Shield,
+  Safety: ShieldCheck,
+  Awareness: Megaphone,
+  Travel: Plane,
+};
+
+function categoryIcon(category: string) {
+  return CATEGORY_ICONS[category] ?? Tag;
+}
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -123,12 +184,26 @@ function IncidentsPageInner() {
     getIncidentStateSnapshot,
     getIncidentStateServerSnapshot,
   );
-  const categoryOptions = useMemo(
-    () => ["All categories", ...Array.from(new Set(incidentList.map((incident) => incident.category))).sort()],
+  const categoryOptions = useMemo<IceSelectOption[]>(
+    () => [
+      { value: "all", label: "All categories", icon: LayoutGrid },
+      ...Array.from(new Set(incidentList.map((incident) => incident.category)))
+        .sort()
+        .map((categoryName) => ({
+          value: categoryName,
+          label: categoryName,
+          icon: categoryIcon(categoryName),
+        })),
+    ],
     [incidentList],
   );
-  const locationOptions = useMemo(
-    () => ["All locations", ...Array.from(new Set(incidentList.map((incident) => incident.location))).sort()],
+  const locationOptions = useMemo<IceSelectOption[]>(
+    () => [
+      { value: "all", label: "All locations" },
+      ...Array.from(new Set(incidentList.map((incident) => incident.location)))
+        .sort()
+        .map((locationName) => ({ value: locationName, label: locationName })),
+    ],
     [incidentList],
   );
 
@@ -313,49 +388,49 @@ function IncidentsPageInner() {
     >
             {showFilters && (
               <div className={`mb-5 grid gap-3 rounded-[16px] bg-white p-3 shadow-[var(--shadow-soft)] ${scope === "assigned" ? "md:grid-cols-2 xl:grid-cols-5" : "md:grid-cols-2 xl:grid-cols-6"}`}>
-                <FilterField
+                <IceSelect
                   label="Reporting period"
-                  value={period === "7d" ? "Last 7 days" : period === "24h" ? "Last 24 hours" : period === "30d" ? "Last 30 days" : "All time"}
+                  value={period}
+                  options={PERIOD_OPTIONS}
+                  onChange={(value) => applyFilters({ period: value })}
                   icon={CalendarDays}
-                  options={["All time", "Last 30 days", "Last 7 days", "Last 24 hours"]}
-                  onChange={(value) => applyFilters({ period: value === "Last 7 days" ? "7d" : value === "Last 24 hours" ? "24h" : value === "Last 30 days" ? "30d" : "all" })}
                 />
-                <FilterField
+                <IceSelect
                   label="Category"
-                  value={category === "all" ? "All categories" : category}
-                  onChange={(value) => applyFilters({ category: value })}
+                  value={category}
                   options={categoryOptions}
+                  onChange={(value) => applyFilters({ category: value })}
                   icon={ClipboardList}
                 />
                 {scope !== "assigned" && (
-                  <FilterField
+                  <IceSelect
                     label="Priority"
-                    value={priority === "all" ? "All priorities" : priority}
+                    value={priority}
+                    options={PRIORITY_OPTIONS}
                     onChange={(value) => applyFilters({ priority: value })}
-                    options={["All priorities", "Critical", "Advisory", "Informational"]}
                     icon={FileWarning}
                   />
                 )}
-                <FilterField
+                <IceSelect
                   label="Status"
-                  value={status === "all" ? "All statuses" : status === "resolved" ? "Resolved / closed" : status}
-                  onChange={(value) => applyFilters({ status: value })}
+                  value={status}
                   options={INCIDENT_STATUS_OPTIONS}
+                  onChange={(value) => applyFilters({ status: value })}
                   icon={ShieldCheck}
                 />
-                <FilterField
+                <IceSelect
                   label="Location"
-                  value={location === "all" ? "All locations" : location}
-                  onChange={(value) => applyFilters({ location: value })}
+                  value={location}
                   options={locationOptions}
+                  onChange={(value) => applyFilters({ location: value })}
                   icon={MapPin}
                 />
-                <FilterField
+                <IceSelect
                   label="Report type"
-                  value={incidentType === "all" ? "All report types" : incidentType}
+                  value={incidentType}
+                  options={REPORT_TYPE_OPTIONS}
                   onChange={(value) => applyFilters({ incidentType: value })}
-                  options={["All report types", "SOS", "Emergency Report", "Incident Report"]}
-                  icon={FileWarning}
+                  icon={FileText}
                 />
               </div>
             )}
@@ -539,58 +614,3 @@ function IncidentsPageInner() {
   );
 }
 
-function FilterField({
-  label,
-  value,
-  options,
-  onChange,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange?: (value: string) => void;
-  icon: typeof MapPin;
-}) {
-  return (
-    <label className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--muted-foreground)]">{label}</span>
-      <div className="relative">
-        <select
-          value={
-            value === "All categories" ? "all" :
-            value === "All priorities" ? "all" :
-            value === "All statuses" ? "all" :
-            value === "All locations" ? "all" :
-            value === "All report types" ? "all" :
-            value === "Resolved / closed" ? "resolved" :
-            value === "Last 30 days" ? "Last 30 days" :
-            value
-          }
-          onChange={(event) => onChange?.(event.target.value === "all" ? "all" : event.target.value)}
-          className="h-11 w-full appearance-none rounded-xl border border-[var(--border)] bg-white px-3 pr-8 text-sm text-[var(--foreground)] shadow-[var(--shadow-soft)] outline-none focus:border-[var(--primary)]"
-        >
-          {options.map((option) => {
-            const optionValue =
-              option === "All categories" ? "all" :
-              option === "All priorities" ? "all" :
-              option === "All statuses" ? "all" :
-              option === "All locations" ? "all" :
-              option === "All report types" ? "all" :
-              option === "Resolved / closed" ? "resolved" :
-              option;
-
-            return (
-              <option key={option} value={optionValue}>
-                {option}
-              </option>
-            );
-          })}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-          <Icon className="h-4 w-4 text-[var(--muted-foreground)]" />
-        </span>
-      </div>
-    </label>
-  );
-}

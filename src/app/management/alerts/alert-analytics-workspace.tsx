@@ -6,12 +6,12 @@ import {
   Bell,
   CalendarDays,
   CheckCheck,
-  ChevronDown,
   CircleAlert,
   RotateCcw,
   Tag,
   TriangleAlert,
 } from "lucide-react";
+import { IceSelect } from "@/components/ice-select";
 import type { AlertItem } from "@/app/dashboard/mock-data";
 import { getAlertStateServerSnapshot, getAlertStateSnapshot, subscribeToAlertState } from "../../alerts/alert-state";
 import { ManagementShell } from "../management-shell";
@@ -110,22 +110,14 @@ function FilterBar({
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {FILTER_FIELDS.map(({ key, label, icon: Icon }) => (
-          <label key={key} className="min-w-0">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium text-[var(--muted-foreground)]">
-              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-              {label}
-            </span>
-            <span className="relative block">
-              <select
-                value={filters[key]}
-                onChange={(event) => onChange(key, event.target.value)}
-                className="h-10 w-full appearance-none rounded-lg border border-[var(--input)] bg-[var(--card)] pl-3 pr-9 text-[11px] text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-              >
-                {optionsByField[key].map((value) => <option key={value} value={value}>{optionLabel(key, value)}</option>)}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]" aria-hidden="true" />
-            </span>
-          </label>
+          <IceSelect
+            key={key}
+            label={label}
+            icon={Icon}
+            value={filters[key]}
+            options={optionsByField[key].map((value) => ({ value, label: optionLabel(key, value) }))}
+            onChange={(value) => onChange(key, value)}
+          />
         ))}
       </div>
       {Object.values(filters).some((value) => value !== "all") && (

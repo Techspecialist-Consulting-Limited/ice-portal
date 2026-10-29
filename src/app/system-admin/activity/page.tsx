@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { CalendarDays, Clock3, History, Search } from "lucide-react";
+import { IceSelect } from "@/components/ice-select";
 import { SystemAdminShell } from "../system-admin-shell";
 import {
   ACTIVITY_TYPES,
@@ -105,13 +106,18 @@ export default function SystemAdminActivityPage() {
             className={`${inputClass} pl-9`}
           />
         </label>
-        <label>
-          <span className="sr-only">Filter by activity type</span>
-          <select value={actionFilter} onChange={(event) => resetPageAnd(setActionFilter, event.target.value)} className={inputClass}>
-            <option value="all">All activity types</option>
-            {ACTIVITY_TYPES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </label>
+        <div className="min-w-0">
+          <IceSelect
+            hideLabel
+            label="Filter by activity type"
+            value={actionFilter}
+            options={[
+              { value: "all", label: "All activity types" },
+              ...ACTIVITY_TYPES.map(({ value, label }) => ({ value, label })),
+            ]}
+            onChange={(value) => resetPageAnd(setActionFilter, value)}
+          />
+        </div>
         <label className="relative">
           <span className="sr-only">From date</span>
           <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]" aria-hidden="true" />

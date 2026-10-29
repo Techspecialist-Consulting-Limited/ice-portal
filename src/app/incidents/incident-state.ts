@@ -50,24 +50,26 @@ export function readIncidentState(): IncidentItem[] {
   }
   if (!Array.isArray(parsed) || parsed.length === 0) return seedIncidents;
 
-  const seedTypesById = new Map(
-    seedIncidents.flatMap((incident) =>
-      incident.incidentType ? [[incident.id, incident.incidentType] as const] : [],
-    ),
-  );
+  const seedById = new Map(seedIncidents.map((incident) => [incident.id, incident] as const));
   let migrated = false;
-  const incidentsWithSeedTypes = parsed.map((incident) => {
-    if (incident.incidentType) return incident;
-    const incidentType = seedTypesById.get(incident.id);
-    if (!incidentType) return incident;
+  const incidentsWithSeedFields = parsed.map((incident) => {
+    const seed = seedById.get(incident.id);
+    if (!seed) return incident;
+    // Location is not editable in the incident workflow, so persisted demo
+    // sessions can safely pick up the current seed location.
+    if (incident.incidentType && incident.location === seed.location) return incident;
     migrated = true;
-    return { ...incident, incidentType };
+    return {
+      ...incident,
+      incidentType: incident.incidentType ?? seed.incidentType,
+      location: seed.location,
+    };
   });
 
   if (migrated) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(incidentsWithSeedTypes));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(incidentsWithSeedFields));
   }
-  return incidentsWithSeedTypes;
+  return incidentsWithSeedFields;
 }
 
 export function writeIncidentState(items: IncidentItem[]) {
