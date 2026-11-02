@@ -22,6 +22,19 @@ export const INCIDENT_RESPONDER: UserRole = "Incident Responder";
 export const MANAGEMENT_USER: UserRole = "Management User";
 export const SYSTEM_ADMINISTRATOR: UserRole = "System Administrator";
 
+// Each role's landing page. "/" is the sign-in page, so every "go home" link,
+// role switch and role-guard redirect resolves through here instead.
+const ROLE_HOME: Record<UserRole, string> = {
+  "Risk Administrator": "/dashboard",
+  "Incident Responder": "/responder/dashboard",
+  "Management User": "/management/dashboard",
+  "System Administrator": "/system-admin/dashboard",
+};
+
+export function homePathForRole(role: UserRole): string {
+  return ROLE_HOME[role];
+}
+
 export type CurrentUser = {
   id: string;
   name: string;

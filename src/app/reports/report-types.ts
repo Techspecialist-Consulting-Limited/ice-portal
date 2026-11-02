@@ -69,8 +69,6 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
       { key: "acknowledgement", label: "Acknowledgement", sort: "text" },
       { key: "published", label: "Published", sort: "date" },
     ],
-    limitationNote:
-      "Delivery status and opened counts are not captured by the current alert data model and are not included. Recipient, acknowledged and outstanding figures come from the alert acknowledgement data.",
   },
   {
     kind: "incident",

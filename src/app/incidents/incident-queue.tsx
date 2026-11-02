@@ -368,7 +368,7 @@ function IncidentsPageInner() {
           </>
         ) : (
           <>
-            <Link href="/" className="hover:text-[var(--primary)]">Home</Link>
+            <Link href="/dashboard" className="hover:text-[var(--primary)]">Home</Link>
             <span aria-hidden="true">/</span>
             <span className="font-medium text-[var(--foreground)]">Incidents</span>
           </>

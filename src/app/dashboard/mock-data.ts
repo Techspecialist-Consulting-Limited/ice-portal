@@ -78,7 +78,9 @@ export type AlertItem = {
 // Lifecycle, pinning, category and source are kept separate on purpose — a
 // published item may originate from an approved external source, and source
 // ownership is not the same concept as item lifecycle.
-export type FeedLifecycleStatus = "Draft" | "Published" | "Withdrawn" | "Archived";
+// "Pending" is an item received from an external source that is awaiting
+// review; "Draft" is an item authored internally that has not been published.
+export type FeedLifecycleStatus = "Pending" | "Draft" | "Published" | "Withdrawn" | "Archived";
 
 export type FeedSourceType = "Internal" | "External";
 
@@ -964,6 +966,7 @@ export const feedSources: FeedSource[] = [
   { id: "SRC-EXT-02", name: "GSOC Regional Bulletin", type: "External", owner: "System Administrator", approved: true },
   { id: "SRC-EXT-03", name: "National Met Service", type: "External", owner: "System Administrator", approved: true },
   { id: "SRC-EXT-04", name: "Vendor Security Bulletins", type: "External", owner: "System Administrator", approved: true },
+  { id: "SRC-EXT-05", name: "Nigerian Open Watch", type: "External", owner: "System Administrator", approved: true },
   { id: "SRC-INT-01", name: "Security Desk", type: "Internal", owner: "Risk Administrator", approved: true },
   { id: "SRC-INT-02", name: "Risk & Compliance", type: "Internal", owner: "Risk Administrator", approved: true },
   { id: "SRC-INT-03", name: "Facilities", type: "Internal", owner: "Risk Administrator", approved: true },
@@ -977,6 +980,201 @@ export const feedSources: FeedSource[] = [
 // so their published/pinned counts and activity always agree. Prototype fixture
 // data — local only, no backend and no external connector.
 export const feeds: FeedItem[] = [
+  {
+    id: "FD-2124",
+    title: "Road blockade reported on Abuja–Kaduna expressway",
+    summary:
+      "Nigerian Open Watch reports a road blockade on the Abuja–Kaduna expressway near Jere. Staff should avoid road travel on this route until it is cleared.",
+    category: "Travel",
+    status: "Pending",
+    pinned: false,
+    source: "Nigerian Open Watch",
+    sourceType: "External",
+    content:
+      "Nigerian Open Watch reports a road blockade on the Abuja–Kaduna expressway near Jere, with traffic backed up in both directions. Staff should avoid road travel on this route until the blockade is confirmed cleared, use the rail service where travel is essential, and confirm movement plans with the transport desk before departing.",
+    audience: "Abuja HQ staff",
+    shareability: "Internal only",
+    priority: "Critical",
+    updatedAt: "2026-11-02T08:20:00Z",
+    history: [
+      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "2 Nov 2026 · 08:20" },
+    ],
+  },
+  {
+    id: "FD-2123",
+    title: "Flash flooding alert for low-lying areas of Lagos Island",
+    summary:
+      "Heavy rainfall has caused flash flooding in low-lying parts of Lagos Island and Victoria Island. Expect road closures and delayed commutes.",
+    category: "Safety",
+    status: "Pending",
+    pinned: false,
+    source: "Nigerian Open Watch",
+    sourceType: "External",
+    content:
+      "Nigerian Open Watch reports flash flooding in low-lying parts of Lagos Island and Victoria Island following overnight rainfall. Several roads are impassable and commutes are significantly delayed. Do not drive or walk through flood water, allow extra travel time, and check in with your line manager if you cannot reach the office safely.",
+    audience: "Lagos office staff",
+    shareability: "Internal only",
+    priority: "Advisory",
+    updatedAt: "2026-11-02T06:45:00Z",
+    history: [
+      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "2 Nov 2026 · 06:45" },
+    ],
+  },
+  {
+    id: "FD-2122",
+    title: "Planned labour union rally in Port Harcourt city centre",
+    summary:
+      "A labour union rally is planned in Port Harcourt city centre on Wednesday. Expect heavy crowds and possible road closures around the rally route.",
+    category: "Security",
+    status: "Pending",
+    pinned: false,
+    source: "Nigerian Open Watch",
+    sourceType: "External",
+    content:
+      "Nigerian Open Watch reports that a labour union rally is planned in Port Harcourt city centre on Wednesday, gathering from mid-morning. Expect heavy crowds and possible road closures along the rally route. Avoid the area where possible, do not engage with gatherings, and follow security desk guidance on office access for the day.",
+    audience: "Port Harcourt staff",
+    shareability: "Internal only",
+    priority: "Advisory",
+    updatedAt: "2026-11-01T17:10:00Z",
+    history: [
+      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "1 Nov 2026 · 17:10" },
+    ],
+  },
+  {
+    id: "FD-2121",
+    title: "Rise in fake police checkpoint reports on intercity routes",
+    summary:
+      "Reports of unofficial checkpoints extorting motorists on intercity routes have increased. Travel only on approved routes and report any suspicious stops.",
+    category: "Travel",
+    status: "Pending",
+    pinned: false,
+    source: "Nigerian Open Watch",
+    sourceType: "External",
+    content:
+      "Nigerian Open Watch has recorded an increase in reports of unofficial checkpoints stopping and extorting motorists on intercity routes, particularly after dark. Travel only on approved routes and during daylight hours, keep vehicle doors locked, and report any suspicious stop to the security desk as soon as it is safe to do so.",
+    audience: "All staff",
+    shareability: "Internal only",
+    priority: "Advisory",
+    updatedAt: "2026-11-01T12:30:00Z",
+    history: [
+      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "1 Nov 2026 · 12:30" },
+    ],
+  },
+  {
+    id: "FD-2120",
+    title: "Fuel scarcity causing long queues in Abuja and Kano",
+    summary:
+      "Fuel scarcity has led to long queues at filling stations in Abuja and Kano. Plan journeys in advance and avoid waiting in queues after dark.",
+    category: "Operations",
+    status: "Pending",
+    pinned: false,
+    source: "Nigerian Open Watch",
+    sourceType: "External",
+    content:
+      "Nigerian Open Watch reports fuel scarcity in Abuja and Kano, with long queues forming at filling stations and some stations closed. Plan essential journeys in advance, keep pool vehicles fuelled where possible, and avoid waiting in queues after dark. Contact the transport desk if fuel shortages affect a planned trip.",
+    audience: "General NSIA Group",
+    shareability: "Internal only",
+    priority: "Informational",
+    updatedAt: "2026-10-31T15:05:00Z",
+    history: [
+      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "31 Oct 2026 · 15:05" },
+    ],
+  },
+  {
+    id: "FD-2119",
+    title: "Cholera cases reported in parts of Kano State",
+    summary:
+      "Health authorities have confirmed cholera cases in parts of Kano State. Drink only treated water and report symptoms to Medical Services promptly.",
+    category: "Medical",
+    status: "Pending",
+    pinned: false,
+    source: "Nigerian Open Watch",
+    sourceType: "External",
+    content:
+      "Nigerian Open Watch reports confirmed cholera cases in parts of Kano State. Drink only bottled or treated water, wash hands frequently, and avoid uncooked street food. Staff with symptoms such as sudden diarrhoea or vomiting should contact Medical Services immediately and should not report to the office.",
+    audience: "Kano office staff",
+    shareability: "Internal only",
+    priority: "Advisory",
+    updatedAt: "2026-10-31T09:40:00Z",
+    history: [
+      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "31 Oct 2026 · 09:40" },
+    ],
+  },
+  {
+    id: "FD-2118",
+    title: "Power grid disruption expected across northern states",
+    summary:
+      "A national grid disruption is expected to cause extended power outages across northern states. Offices should prepare backup power arrangements.",
+    category: "Facilities",
+    status: "Pending",
+    pinned: false,
+    source: "Nigerian Open Watch",
+    sourceType: "External",
+    content:
+      "Nigerian Open Watch reports an expected national grid disruption that may cause extended power outages across northern states over the coming days. Facilities teams should confirm generator fuel levels and test backup power. Staff should save work regularly and report any loss of critical systems to ICT Operations.",
+    audience: "Operations staff",
+    shareability: "Internal only",
+    priority: "Informational",
+    updatedAt: "2026-10-30T13:20:00Z",
+    history: [
+      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "30 Oct 2026 · 13:20" },
+    ],
+  },
+  {
+    id: "FD-2117",
+    title: "Increase in mobile phone snatching around Wuse Market",
+    summary:
+      "Reports of mobile phone snatching by motorcycle riders around Wuse Market have increased. Keep phones out of sight when walking near busy roads.",
+    category: "Security",
+    status: "Pending",
+    pinned: false,
+    source: "Nigerian Open Watch",
+    sourceType: "External",
+    content:
+      "Nigerian Open Watch reports an increase in mobile phone snatching by motorcycle riders around Wuse Market and nearby roads. Keep phones and valuables out of sight when walking near busy roads, avoid using your phone at the roadside, and report any incident to the security desk and the police.",
+    audience: "Abuja HQ staff",
+    shareability: "Internal only",
+    priority: "Informational",
+    updatedAt: "2026-10-29T10:15:00Z",
+    history: [
+      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "29 Oct 2026 · 10:15" },
+    ],
+  },
+  {
+    id: "FD-2116",
+    title: "Updated emergency contact numbers for all offices",
+    summary:
+      "The security desk has updated the emergency contact numbers for all offices. Save the new numbers and remove any old ones from your phone.",
+    category: "Security",
+    status: "Published",
+    pinned: false,
+    source: "Security Desk",
+    sourceType: "Internal",
+    content:
+      "The security desk has updated the emergency contact numbers for all offices. Save the new numbers from the staff directory and remove any old numbers from your phone. The security desk line remains available around the clock for any emergency or suspicious activity.",
+    audience: "All staff",
+    shareability: "Internal only",
+    publishedAt: "2026-10-28T09:00:00Z",
+    updatedAt: "2026-10-28T09:00:00Z",
+    publishedBy: "Mike Kanu",
+  },
+  {
+    id: "FD-2115",
+    title: "Fire warden refresher training schedule",
+    summary:
+      "Draft schedule for the next round of fire warden refresher training. Pending confirmation of dates with each office before publishing.",
+    category: "Fire & safety",
+    status: "Draft",
+    pinned: false,
+    source: "Facilities",
+    sourceType: "Internal",
+    content:
+      "Draft schedule for the next round of fire warden refresher training across all offices. Each session covers evacuation routes, assembly points and extinguisher use. Dates are still to be confirmed with each office, so this item has not been published.",
+    audience: "All staff",
+    shareability: "Internal only",
+    updatedAt: "2026-10-27T14:30:00Z",
+    createdBy: "Mike Kanu",
+  },
   {
     id: "FD-2114",
     title: "Phishing campaign impersonating internal IT",

@@ -225,7 +225,7 @@ export function ReviewPageContent({
       <IncidentPortalShell
         breadcrumbs={
           <>
-            <Link href="/">Home</Link>
+            <Link href="/dashboard">Home</Link>
             <span>/</span>
             <Link href="/incidents">Incidents</Link>
             <span>/</span>
@@ -265,7 +265,7 @@ export function ReviewPageContent({
     <IncidentPortalShell
       breadcrumbs={
         <>
-          <Link href="/">Home</Link>
+          <Link href="/dashboard">Home</Link>
           <span>/</span>
           <Link href="/incidents">Incidents</Link>
           <span>/</span>

@@ -8,6 +8,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
   ExternalLink,
   FilePenLine,
   MoreHorizontal,
@@ -24,7 +25,6 @@ import {
 } from "lucide-react";
 import { IceSelect } from "@/components/ice-select";
 import type { FeedItem } from "../dashboard/mock-data";
-import { feedSources } from "../dashboard/mock-data";
 import {
   getFeedStateServerSnapshot,
   getFeedStateSnapshot,
@@ -36,7 +36,9 @@ import {
   FeedStatusBadge,
   canEditFeedItem,
   formatFeedTimestamp,
+  canPublishFeedItem,
   isDraft,
+  isPending,
   isPublished,
   sourceTypeLabel,
 } from "./feed-status";
@@ -239,7 +241,7 @@ function FeedRowMenu({
               onSelect={() => onTogglePin(item)}
             />
           )}
-          {isDraft(item.status) && (
+          {canPublishFeedItem(item.status) && (
             <RowMenuAction label="Publish item" icon={Send} onSelect={() => onAction({ item, action: "publish" })} />
           )}
           {isPublished(item.status) && (
@@ -415,6 +417,7 @@ function SecurityFeedPageInner() {
   // dashboard and act as stable navigation filters.
   const publishedCount = feedList.filter((item) => isPublished(item.status)).length;
   const pinnedCount = feedList.filter((item) => item.pinned).length;
+  const pendingCount = feedList.filter((item) => isPending(item.status)).length;
   const draftCount = feedList.filter((item) => isDraft(item.status)).length;
   const externalCount = feedList.filter((item) => item.sourceType === "External").length;
 
@@ -476,25 +479,12 @@ function SecurityFeedPageInner() {
   const showingFrom = sorted.length === 0 ? 0 : startIndex + 1;
   const showingTo = Math.min(startIndex + PAGE_SIZE, sorted.length);
 
-  // Source activity is derived from the canonical records: for each approved
-  // external source we show how many published items came from it and the most
-  // recent published timestamp. No sync schedule or health is implied.
-  const externalSourceActivity = feedSources
-    .filter((entry) => entry.type === "External")
-    .map((entry) => {
-      const items = feedList.filter((item) => item.source === entry.name && isPublished(item.status));
-      const latest = items
-        .map((item) => item.publishedAt ?? item.updatedAt)
-        .sort((a, b) => b.localeCompare(a))[0];
-      return { ...entry, publishedCount: items.length, latest };
-    });
-
   return (
     <IncidentPortalShell
       activeNav="security-feed"
       breadcrumbs={
         <>
-          <Link href="/" className="hover:text-[var(--primary)]">Home</Link>
+          <Link href="/dashboard" className="hover:text-[var(--primary)]">Home</Link>
           <span aria-hidden="true">/</span>
           <span className="font-medium text-[var(--foreground)]">Security Feed</span>
         </>
@@ -511,7 +501,7 @@ function SecurityFeedPageInner() {
         </Link>
       }
     >
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <SummaryCard
           label="Published items"
           value={publishedCount}
@@ -527,6 +517,14 @@ function SecurityFeedPageInner() {
           tone="green"
           selected={pinned === "only"}
           onClick={() => applyFilters({ pinned: pinned === "only" ? "all" : "only" })}
+        />
+        <SummaryCard
+          label="Pending review"
+          value={pendingCount}
+          icon={Clock}
+          tone="amber"
+          selected={status === "Pending"}
+          onClick={() => applyFilters({ status: status === "Pending" ? "all" : "Pending" })}
         />
         <SummaryCard
           label="Drafts"
@@ -749,37 +747,6 @@ function SecurityFeedPageInner() {
                 </button>
               </nav>
             )}
-          </div>
-        )}
-      </section>
-
-      <section className="mt-5 rounded-[18px] border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-soft)]">
-        <div className="mb-3">
-          <h2 className="text-[15px] font-semibold text-[var(--foreground)]">Approved external sources</h2>
-          <p className="mt-1 text-[12px] text-[var(--muted-foreground)]">
-            Read-only. External source connections are managed by the System Administrator; the Risk Administrator curates the content.
-          </p>
-        </div>
-        {externalSourceActivity.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--muted)] px-4 py-6 text-center text-[12px] text-[var(--muted-foreground)]">
-            No external sources are configured.
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {externalSourceActivity.map((entry) => (
-              <div key={entry.id} className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
-                <div className="flex items-center gap-1.5">
-                  <ExternalLink className="h-4 w-4 text-[var(--muted-foreground)]" strokeWidth={2} />
-                  <span className="text-[13px] font-medium text-[var(--foreground)]">{entry.name}</span>
-                </div>
-                <p className="mt-1.5 text-[12px] text-[var(--muted-foreground)]">
-                  {entry.publishedCount} published {entry.publishedCount === 1 ? "item" : "items"}
-                </p>
-                <p className="mt-0.5 text-[12px] text-[var(--muted-foreground)]">
-                  {entry.latest ? `Most recent ${formatFeedTimestamp(entry.latest)}` : "No published items yet"}
-                </p>
-              </div>
-            ))}
           </div>
         )}
       </section>

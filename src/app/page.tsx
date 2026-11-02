@@ -17,7 +17,7 @@ function MicrosoftMark() {
 export default function HomePage() {
   return (
     <main className={styles.page}>
-      <div className={styles.imageWindow} aria-hidden="true">
+      <div className={`relative ${styles.imageWindow}`} aria-hidden="true">
         <Image
           src="/assets/ice-login-image.png"
           alt=""
@@ -60,14 +60,14 @@ export default function HomePage() {
           <h2 id="login-title" className={styles.loginTitle}>Welcome back</h2>
           <p className={styles.loginDescription}>Sign in to access the portal.</p>
 
-          <Link
-            href="/dashboard"
+          <a
+            href="/api/session/continue"
             className={styles.microsoftButton}
           >
             <MicrosoftMark />
             <span>Continue with Microsoft</span>
             <ArrowRight aria-hidden="true" className={styles.buttonArrow} />
-          </Link>
+          </a>
         </div>
 
         <footer className={styles.footer}>

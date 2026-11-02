@@ -26,7 +26,7 @@ export function IncidentResolutionContent({ incidentId }: { incidentId: string }
 
   const breadcrumb = (
     <>
-      <Link href="/" className="hover:text-[var(--primary)]">Home</Link>
+      <Link href="/dashboard" className="hover:text-[var(--primary)]">Home</Link>
       <span aria-hidden="true">/</span>
       <Link href="/incidents" className="hover:text-[var(--primary)]">Incidents</Link>
       <span aria-hidden="true">/</span>

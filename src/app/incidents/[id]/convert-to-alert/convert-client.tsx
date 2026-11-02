@@ -435,7 +435,7 @@ export function ConvertToAlertContent({ incidentId }: { incidentId: string }) {
 
   const breadcrumbs = (current: React.ReactNode) => (
     <>
-      <Link href="/" className="hover:text-[var(--primary)]">
+      <Link href="/dashboard" className="hover:text-[var(--primary)]">
         Home
       </Link>
       <span aria-hidden="true">/</span>

@@ -11,6 +11,9 @@ import {
 } from "../auth/current-user";
 import { getSessionUser, requireRiskAdministrator } from "../auth/role-access";
 
+// Role guards redirect during render, which instant-navigation validation cannot render past.
+export const instant = false;
+
 function ProfileField({
   icon: Icon,
   label,
@@ -64,7 +67,7 @@ export default async function ProfilePage() {
       activeNav="profile"
       breadcrumbs={
         <>
-          <Link href="/" className="hover:text-[var(--primary)]">
+          <Link href="/dashboard" className="hover:text-[var(--primary)]">
             Home
           </Link>
           <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -153,7 +156,6 @@ export default async function ProfilePage() {
           <button
             type="button"
             disabled
-            aria-describedby="profile-signout-note"
             title="Sign out is not available yet."
             className="inline-flex h-11 cursor-not-allowed items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 text-sm font-medium text-[#718178] opacity-70"
           >
@@ -161,15 +163,12 @@ export default async function ProfilePage() {
             Sign out
           </button>
           <Link
-            href="/"
+            href="/dashboard"
             className="inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-3.5 text-sm font-medium text-[var(--foreground)] shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
             Back to dashboard
           </Link>
         </div>
-        <p id="profile-signout-note" className="mt-3 text-[12px] leading-5 text-[var(--muted-foreground)]">
-          Sign out is not available yet because the portal does not have a sign-in session to end.
-        </p>
       </section>
     </IncidentPortalShell>
   );

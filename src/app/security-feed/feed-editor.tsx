@@ -265,7 +265,7 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
   const dirty = currentSignature !== baseline;
 
   const currentStatus: FeedLifecycleStatus = item?.status ?? "Draft";
-  const secondaryLabel = currentStatus === "Published" ? "Save changes" : "Save draft";
+  const secondaryLabel = currentStatus === "Draft" ? "Save draft" : "Save changes";
 
   const showToast = (message: string, tone: "success" | "error") => {
     setToast({ message, tone });
@@ -444,7 +444,7 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
 
   const breadcrumbs = (
     <>
-      <Link href="/" className="hover:text-[var(--primary)]">Home</Link>
+      <Link href="/dashboard" className="hover:text-[var(--primary)]">Home</Link>
       <span aria-hidden="true">/</span>
       <Link href="/security-feed" className="hover:text-[var(--primary)]">Security Feed</Link>
       {item && (

@@ -8,6 +8,7 @@ export type FeedTone = IncidentTone;
 // is never described two ways. Lifecycle is kept separate from source type —
 // a Published item may originate from an External source.
 const feedStatusToneMap: Record<FeedLifecycleStatus, FeedTone> = {
+  Pending: "warning",
   Draft: "neutral",
   Published: "success",
   Withdrawn: "neutral",
@@ -18,7 +19,7 @@ export function feedStatusTone(status: FeedLifecycleStatus): FeedTone {
   return feedStatusToneMap[status] ?? "neutral";
 }
 
-export const FEED_STATUS_ORDER: FeedLifecycleStatus[] = ["Draft", "Published", "Withdrawn", "Archived"];
+export const FEED_STATUS_ORDER: FeedLifecycleStatus[] = ["Pending", "Draft", "Published", "Withdrawn", "Archived"];
 
 export function isPublished(status: FeedLifecycleStatus) {
   return status === "Published";
@@ -28,15 +29,25 @@ export function isDraft(status: FeedLifecycleStatus) {
   return status === "Draft";
 }
 
-// Feed items that are live to the audience. Draft/Withdrawn/Archived are not
+export function isPending(status: FeedLifecycleStatus) {
+  return status === "Pending";
+}
+
+// Items that have not gone live yet: internal drafts and external items
+// awaiting review are both published through the same action.
+export function canPublishFeedItem(status: FeedLifecycleStatus) {
+  return status === "Pending" || status === "Draft";
+}
+
+// Feed items that are live to the audience. Pending/Draft/Withdrawn/Archived are not
 // active in the feed.
 export function isActiveFeedItem(status: FeedLifecycleStatus) {
   return status === "Published";
 }
 
-// Authoring/curation is only meaningful for Draft and Published items.
+// Authoring/curation is only meaningful for Pending, Draft and Published items.
 export function canEditFeedItem(status: FeedLifecycleStatus) {
-  return status === "Draft" || status === "Published";
+  return status === "Pending" || status === "Draft" || status === "Published";
 }
 
 export function FeedStatusBadge({ status, className }: { status: FeedLifecycleStatus; className?: string }) {

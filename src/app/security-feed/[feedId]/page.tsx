@@ -23,7 +23,7 @@ import {
   FeedStatusBadge,
   canEditFeedItem,
   formatFeedTimestamp,
-  isDraft,
+  canPublishFeedItem,
   isPublished,
   sourceTypeLabel,
 } from "../feed-status";
@@ -63,7 +63,7 @@ function FeedNotFound({ feedId }: { feedId: string }) {
       activeNav="security-feed"
       breadcrumbs={
         <>
-          <Link href="/" className="hover:text-[var(--primary)]">Home</Link>
+          <Link href="/dashboard" className="hover:text-[var(--primary)]">Home</Link>
           <span aria-hidden="true">/</span>
           <Link href="/security-feed" className="hover:text-[var(--primary)]">Security Feed</Link>
           <span aria-hidden="true">/</span>
@@ -118,7 +118,7 @@ function FeedDetailContent() {
 
   const detailsHref = `/security-feed/${encodeURIComponent(item.id)}`;
   const editable = canEditFeedItem(item.status);
-  const publishable = isDraft(item.status);
+  const publishable = canPublishFeedItem(item.status);
   const withdrawable = isPublished(item.status);
 
   const showToast = (message: string, tone: "success" | "error") => {
@@ -177,7 +177,7 @@ function FeedDetailContent() {
       activeNav="security-feed"
       breadcrumbs={
         <>
-          <Link href="/" className="hover:text-[var(--primary)]">Home</Link>
+          <Link href="/dashboard" className="hover:text-[var(--primary)]">Home</Link>
           <span aria-hidden="true">/</span>
           <Link href="/security-feed" className="hover:text-[var(--primary)]">Security Feed</Link>
           <span aria-hidden="true">/</span>

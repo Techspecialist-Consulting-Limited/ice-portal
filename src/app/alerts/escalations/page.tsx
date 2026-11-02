@@ -483,7 +483,7 @@ function EscalationContent() {
 
   const breadcrumbs = (
     <>
-      <Link href="/" className="hover:text-[var(--primary)]">Home</Link>
+      <Link href="/dashboard" className="hover:text-[var(--primary)]">Home</Link>
       <span aria-hidden="true">/</span>
       <Link href="/alerts" className="hover:text-[var(--primary)]">Alerts &amp; Advisories</Link>
       <span aria-hidden="true">/</span>

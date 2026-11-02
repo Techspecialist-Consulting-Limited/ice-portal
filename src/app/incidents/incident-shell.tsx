@@ -40,7 +40,7 @@ import { isReviewRequired } from "./incident-status";
 export type PortalNavKey = "dashboard" | "incidents" | "alerts" | "security-feed" | "reports" | "profile";
 
 const navItems: Array<{ key: PortalNavKey; label: string; href: string; icon: typeof LayoutDashboard }> = [
-  { key: "dashboard", label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { key: "incidents", label: "Incidents", href: "/incidents", icon: ClipboardList },
   { key: "alerts", label: "Alerts", href: "/alerts", icon: Bell },
   { key: "security-feed", label: "Security Feed", href: "/security-feed", icon: RadioTower },

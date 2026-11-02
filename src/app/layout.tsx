@@ -25,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Suspense fallback={<div className="min-h-dvh bg-[var(--page-bg)]" />}>
           <CurrentUserBoundary>{children}</CurrentUserBoundary>
         </Suspense>
