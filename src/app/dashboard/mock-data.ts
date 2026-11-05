@@ -166,6 +166,8 @@ export type IncidentTimelineEvent = {
   title: string;
   detail: string;
   time: string;
+  actor?: string;
+  actorId?: string;
 };
 
 export type IncidentAssignment = {
@@ -175,6 +177,8 @@ export type IncidentAssignment = {
   team?: string;
   note?: string;
   assignedAt?: string;
+  assignedBy?: string;
+  assignedById?: string;
   escalated?: boolean;
   escalationReason?: string;
   escalatedAt?: string;
@@ -205,6 +209,8 @@ export type IncidentItem = {
   status: IncidentStatus;
   incidentType?: IncidentType;
   reported: string;
+  /** Canonical UTC instant for accurate filtering and Africa/Lagos display. */
+  reportedAt?: string;
   reviewStatus: IncidentReviewStatus;
   actionLabel: string;
   description?: string;
@@ -558,7 +564,8 @@ export const incidents: IncidentItem[] = [
     priority: "Critical",
     status: "Submitted",
     incidentType: "SOS",
-    reported: "06 Oct 2026 · 09:58",
+    reported: "05 Nov 2026 · 09:58",
+    reportedAt: "2026-11-05T08:58:00.000Z",
     reviewStatus: "Pending",
     actionLabel: "Review",
     description: "Smoke was detected in the server room on the 2nd floor. Building staff activated the alarm and evacuated the area. The report included a video and still photos of the incident.",
@@ -569,8 +576,8 @@ export const incidents: IncidentItem[] = [
     floorArea: "2nd floor · Server room",
     watchers: 3,
     timeline: [
-      { title: "Incident reported", detail: "Reported via mobile app by Amina Yusuf.", time: "06 Oct 2026 · 09:58" },
-      { title: "Awaiting administrator review", detail: "Incident is pending verification and assignment.", time: "06 Oct 2026 · 09:58" },
+      { title: "Incident reported", detail: "Reported via mobile app by Amina Yusuf.", time: "05 Nov 2026 · 09:58" },
+      { title: "Awaiting administrator review", detail: "Incident is pending verification and assignment.", time: "05 Nov 2026 · 09:58" },
     ],
     evidence: demoIncidentEvidence,
   },
@@ -580,10 +587,11 @@ export const incidents: IncidentItem[] = [
     category: "Facilities",
     location: "Asokoro",
     priority: "Advisory",
-    status: "Under review",
+    status: "Submitted",
     incidentType: "Emergency Report",
-    reported: "06 Oct 2026 · 09:46",
-    reviewStatus: "In progress",
+    reported: "05 Nov 2026 · 10:21",
+    reportedAt: "2026-11-05T09:21:00.000Z",
+    reviewStatus: "Pending",
     actionLabel: "Review",
     description: "Water is seeping under the service entrance door after overnight rain and pooling on the corridor floor. A wet-floor sign has been placed.",
     reporter: "Aisha Mohammed",
@@ -593,10 +601,9 @@ export const incidents: IncidentItem[] = [
     floorArea: "Ground floor · Service entrance",
     watchers: 2,
     timeline: [
-      { title: "Incident reported", detail: "Reported via mobile app by Aisha Mohammed.", time: "06 Oct 2026 · 09:46" },
-      { title: "Review started", detail: "Under review by Mike Kanu (Risk Administrator).", time: "06 Oct 2026 · 09:54" },
+      { title: "Incident reported", detail: "Reported via mobile app by Aisha Mohammed.", time: "05 Nov 2026 · 10:21" },
+      { title: "Awaiting administrator review", detail: "Incident is pending verification and assignment.", time: "05 Nov 2026 · 10:21" },
     ],
-    reviewer: "Mike Kanu (Risk Administrator)",
   },
   {
     id: "INC-2026-0146",
@@ -604,10 +611,11 @@ export const incidents: IncidentItem[] = [
     category: "Security",
     location: "Abuja HQ",
     priority: "Advisory",
-    status: "Verified",
+    status: "Submitted",
     incidentType: "Incident Report",
-    reported: "06 Oct 2026 · 09:42",
-    reviewStatus: "Completed",
+    reported: "05 Nov 2026 · 11:07",
+    reportedAt: "2026-11-05T10:07:00.000Z",
+    reviewStatus: "Pending",
     actionLabel: "Review",
     description: "An unattended black backpack was left beside the reception desk for over 20 minutes. Nobody has claimed it and the area has been kept clear.",
     reporter: "Yakubu Danladi",
@@ -617,20 +625,9 @@ export const incidents: IncidentItem[] = [
     floorArea: "Ground floor · Main reception",
     watchers: 3,
     timeline: [
-      { title: "Incident reported", detail: "Reported via mobile app by Yakubu Danladi.", time: "06 Oct 2026 · 09:42" },
-      { title: "Incident verified", detail: "Verified by Mike Kanu (Risk Administrator) as part of responder assignment.", time: "06 Oct 2026 · 09:52" },
-      { title: "Responder assigned", detail: "Abbas Taofeeq assigned by Mike Kanu (Risk Administrator) to handle the incident (Security Response).", time: "06 Oct 2026 · 09:53" },
+      { title: "Incident reported", detail: "Reported via mobile app by Yakubu Danladi.", time: "05 Nov 2026 · 11:07" },
+      { title: "Awaiting administrator review", detail: "Incident is pending verification and assignment.", time: "05 Nov 2026 · 11:07" },
     ],
-    reviewer: "Mike Kanu (Risk Administrator)",
-    assignment: {
-      assignee: "Abbas Taofeeq",
-      assigneeId: "RSP-03",
-      assigneeRole: "Incident Responder",
-      team: "Security Response",
-      note: "Please attend, confirm the situation and post progress updates.",
-      assignedAt: "06 Oct 2026 · 09:53",
-      urgency: "Medium",
-    },
   },
   {
     id: "INC-2026-0145",

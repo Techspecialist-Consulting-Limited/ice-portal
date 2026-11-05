@@ -1,5 +1,6 @@
 import type { IncidentItem, IncidentStatus, IncidentType } from "@/app/dashboard/mock-data";
-import { Siren, TriangleAlert, ClipboardList, type LucideIcon } from "lucide-react";
+import { Siren, TriangleAlert, ClipboardList, UserRound, UserRoundCheck, UsersRound, type LucideIcon } from "lucide-react";
+import { INCIDENT_RESPONDER, USERS } from "@/app/auth/current-user";
 
 export type IncidentTone = "danger" | "warning" | "info" | "success" | "neutral" | "primary";
 export type IncidentPriority = IncidentItem["priority"];
@@ -89,6 +90,48 @@ export function StatusBadge({ status, className }: { status: IncidentStatus; cla
 
 export function PriorityBadge({ priority, className }: { priority: IncidentPriority; className?: string }) {
   return <ToneBadge label={priority} tone={incidentPriorityTone(priority)} className={className} />;
+}
+
+export function AssignedResponderBadge({ incident }: { incident: IncidentItem }) {
+  const responder = incident.assignment?.assigneeId
+    ? Object.values(USERS).find(
+        (user) => user.id === incident.assignment?.assigneeId && user.role === INCIDENT_RESPONDER,
+      )
+    : undefined;
+
+  if (responder) {
+    return (
+      <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#eaf7ee] px-2.5 py-1 text-[12px] font-medium text-[#166534]">
+        <UserRoundCheck aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{responder.name}</span>
+      </span>
+    );
+  }
+
+  if (incident.assignment?.assigneeId) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--muted)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted-foreground)]">
+        <UserRound aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+        Responder unavailable
+      </span>
+    );
+  }
+
+  if (incident.assignment?.team) {
+    return (
+      <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#eaf3ff] px-2.5 py-1 text-[12px] font-medium text-[#1d4ed8]">
+        <UsersRound aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{incident.assignment.team}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fff4d6] px-2.5 py-1 text-[12px] font-medium text-[#9a6700]">
+      <UserRound aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+      Not assigned
+    </span>
+  );
 }
 
 export function IncidentTypeBadge({

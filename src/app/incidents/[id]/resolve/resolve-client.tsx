@@ -7,14 +7,10 @@ import { getIncidentStateServerSnapshot, getIncidentStateSnapshot, subscribeToIn
 import { IncidentPortalShell } from "../../incident-shell";
 import { ConfirmDialog, Toast } from "@/app/alerts/alert-dialog";
 import { currentActorLabel } from "@/app/auth/current-user";
+import { formatIncidentTimestamp } from "../../incident-reported";
 
 const ACTOR = currentActorLabel();
 const RESOLVABLE_STATUSES = ["Verified", "Escalated", "Broadcast"];
-
-function formatTimestamp(date: Date) {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${String(date.getDate()).padStart(2, "0")} ${months[date.getMonth()]} ${date.getFullYear()} · ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
 
 export function IncidentResolutionContent({ incidentId }: { incidentId: string }) {
   const incidents = useSyncExternalStore(subscribeToIncidentState, getIncidentStateSnapshot, getIncidentStateServerSnapshot);
@@ -64,7 +60,7 @@ export function IncidentResolutionContent({ incidentId }: { incidentId: string }
     }
 
     try {
-      const stamp = formatTimestamp(new Date());
+      const stamp = formatIncidentTimestamp(new Date());
       const updated = updateIncident(incident.id, (current) => {
         if (!RESOLVABLE_STATUSES.includes(current.status)) throw new Error("Incident status no longer permits resolution.");
         return {
@@ -89,7 +85,7 @@ export function IncidentResolutionContent({ incidentId }: { incidentId: string }
 
   const closeIncident = () => {
     try {
-      const stamp = formatTimestamp(new Date());
+      const stamp = formatIncidentTimestamp(new Date());
       const updated = updateIncident(incident.id, (current) => {
         if (current.status !== "Resolved") throw new Error("Only resolved incidents can be closed.");
         return {

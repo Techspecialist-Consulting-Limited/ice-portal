@@ -40,31 +40,20 @@ import {
 } from "./incident-state";
 import {
   IncidentTypeBadge,
+  AssignedResponderBadge,
   PriorityBadge,
   ToneBadge,
   incidentTypeLabel,
   isActiveIncident,
 } from "./incident-status";
-import { organisationDayKey, parseIncidentReported } from "./incident-reported";
+import {
+  formatIncidentReported,
+  getIncidentReportedTimestamp,
+  organisationDayKey,
+} from "./incident-reported";
 import { IncidentPortalShell } from "./incident-shell";
-import { CURRENT_USER } from "../auth/current-user";
-import type { IncidentItem } from "../dashboard/mock-data";
-
-// Development helper: for responder queue testing, match assignments by name
-// when the ID doesn't directly match. This allows testing without changing CURRENT_USER.id.
-function isAssignedToCurrentUser(incident: IncidentItem): boolean {
-  if (!incident.assignment?.assigneeId) return false;
-  // Direct ID match (production path)
-  if (incident.assignment.assigneeId === CURRENT_USER.id) return true;
-  // Development fallback: match by name when testing
-  if (incident.assignment.assignee === CURRENT_USER.name) return true;
-  return false;
-}
-
-// To view the responder dashboard and assigned incidents queue:
-// 1. Set SESSION_USER_ID to Abbas Taofeeq's id ("RSP-03") in src/app/auth/current-user.ts
-// 2. Ensure the assigneeId or assignee name matches CURRENT_USER in mock-data.ts
-// 3. Navigate to /responder/dashboard or /responder/incidents (preferred) or /incidents?scope=assigned (legacy)
+import { useCurrentUser } from "../auth/current-user-provider";
+import { canResponderAccessIncident } from "../responder/responder-access";
 
 const INCIDENT_PAGE_SIZE = 10;
 // "All statuses" and "Resolved / closed" are grouped views; every other entry is a
@@ -133,6 +122,7 @@ export default function IncidentQueuePage() {
 }
 
 function IncidentsPageInner() {
+  const currentUser = useCurrentUser();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showFilters, setShowFilters] = useState(true);
@@ -215,14 +205,14 @@ function IncidentsPageInner() {
     return incidentList.filter((incident) => {
       const matchesScope =
         scope === "assigned"
-          ? isAssignedToCurrentUser(incident)
+          ? canResponderAccessIncident(incident, currentUser)
           : scope !== "active" || isActiveIncident(incident.status);
       const matchesCategory = category === "all" || incident.category === category;
       const matchesPriority = priority === "all" || incident.priority === priority;
       const matchesStatus = status === "all" || (status === "resolved" ? incident.status === "Resolved" || incident.status === "Closed" : incident.status === status);
       const matchesLocation = location === "all" || incident.location === location;
       const matchesIncidentType = incidentType === "all" || incident.incidentType === incidentType;
-      const reportedAt = parseIncidentReported(incident.reported);
+      const reportedAt = getIncidentReportedTimestamp(incident);
       const matchesPeriod = cutoff === null || (reportedAt !== null && reportedAt >= cutoff);
       const matchesReportedOn =
         !reportedOn || (reportedAt !== null && organisationDayKey(reportedAt) === reportedOn);
@@ -232,7 +222,7 @@ function IncidentsPageInner() {
 
       return matchesScope && matchesCategory && matchesPriority && matchesStatus && matchesLocation && matchesIncidentType && matchesPeriod && matchesReportedOn && matchesSearch;
     });
-  }, [category, incidentList, location, now, period, priority, reportedOn, scope, searchTerm, status, incidentType]);
+  }, [category, currentUser, incidentList, location, now, period, priority, reportedOn, scope, searchTerm, status, incidentType]);
 
   const pageCount = Math.max(1, Math.ceil(filteredIncidents.length / INCIDENT_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -528,14 +518,14 @@ function IncidentsPageInner() {
                 <table className="min-w-[1000px] w-full border-separate border-spacing-0 text-left">
                   <thead>
                     <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
-                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Reference / incident</th>
+                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Incident</th>
                       <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Report type</th>
                       <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Category</th>
                       <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Location</th>
                       {scope !== "assigned" && <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Priority</th>}
                       {scope === "assigned" && <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Assigned</th>}
                       {scope !== "assigned" && <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Review status</th>}
-                      <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Reported</th>
+                      {scope !== "assigned" && <th className="border-b border-[var(--border)] px-3 py-3 font-medium">Assigned responder</th>}
                       <th className="border-b border-[var(--border)] px-3 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -545,7 +535,7 @@ function IncidentsPageInner() {
                       <tr key={incident.id} className="text-sm text-[var(--foreground)] hover:bg-[var(--muted)]">
                         <td className="border-b border-[var(--border)] px-3 py-3">
                           <div className="font-medium text-[var(--foreground)]">{incident.title}</div>
-                          <div className="mt-0.5 text-[11px] text-[var(--muted-foreground)]">{incident.id}</div>
+                          <div className="mt-0.5 text-[11px] text-[var(--muted-foreground)]">                          {formatIncidentReported(incident)}</div>
                         </td>
                         <td className="border-b border-[var(--border)] px-3 py-3">
                           <IncidentTypeBadge incidentType={incident.incidentType} />
@@ -578,7 +568,11 @@ function IncidentsPageInner() {
                             />
                           </td>
                         )}
-                        <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">{incident.reported}</td>
+                        {scope !== "assigned" && (
+                          <td className="border-b border-[var(--border)] px-3 py-3">
+                            <AssignedResponderBadge incident={incident} />
+                          </td>
+                        )}
                         <td className="border-b border-[var(--border)] px-3 py-3 text-right">
                           <Link
                             href={`/incidents/${encodeURIComponent(incident.id)}`}
@@ -592,7 +586,7 @@ function IncidentsPageInner() {
                     ))}
                     {visibleIncidents.length === 0 && (
                       <tr>
-                        <td colSpan={scope === "assigned" ? 7 : 8} className="border-b border-[var(--border)] px-3 py-10 text-center text-sm text-[var(--muted-foreground)]">
+                        <td colSpan={scope === "assigned" ? 6 : 8} className="border-b border-[var(--border)] px-3 py-10 text-center text-sm text-[var(--muted-foreground)]">
                           No incidents match the selected filters.
                         </td>
                       </tr>

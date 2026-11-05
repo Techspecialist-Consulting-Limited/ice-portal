@@ -19,6 +19,7 @@ import { getAlertStateServerSnapshot, getAlertStateSnapshot, subscribeToAlertSta
 import { countActiveCriticalAlerts, summarizeAlertAcknowledgement } from "../../alerts/alert-metrics";
 import { formatAlertRate, isActiveAlert } from "../../alerts/alert-status";
 import { INCIDENT_STATUS_ORDER, isActiveIncident } from "../../incidents/incident-status";
+import { getIncidentReportedTimestamp } from "../../incidents/incident-reported";
 import type { AlertItem, IncidentItem } from "../../dashboard/mock-data";
 import { ManagementShell } from "../management-shell";
 
@@ -29,17 +30,8 @@ const monthlyAdoption = {
   previous: { label: "September", signedIn: 632, feedReaders: 468 },
 };
 
-function parseIncidentDate(value: string): Date | null {
-  const match = value.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
-  if (!match) return null;
-  const month = MONTHS.findIndex((name) => name.toLowerCase() === match[2].toLowerCase());
-  if (month < 0) return null;
-  return new Date(Date.UTC(Number(match[3]), month, Number(match[1])));
-}
-
 function incidentTimestamp(incident: IncidentItem): number | null {
-  const parsed = parseIncidentDate(incident.reported);
-  return parsed ? parsed.getTime() : null;
+  return getIncidentReportedTimestamp(incident);
 }
 
 function alertTimestamp(alert: AlertItem): number | null {

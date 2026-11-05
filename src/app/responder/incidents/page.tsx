@@ -24,7 +24,7 @@ import {
   subscribeToIncidentState,
 } from "../../incidents/incident-state";
 import { IncidentTypeBadge, PriorityBadge, isActiveIncident } from "../../incidents/incident-status";
-import { parseIncidentReported } from "../../incidents/incident-reported";
+import { formatIncidentReported, getIncidentReportedTimestamp } from "../../incidents/incident-reported";
 import { ResponderPortalShell } from "../responder-shell";
 import { canResponderAccessIncident } from "../responder-access";
 import { useCurrentUser } from "../../auth/current-user-provider";
@@ -126,7 +126,7 @@ function ResponderIncidentsPageInner() {
       const matchesCategory = category === "all" || incident.category === category;
       const matchesLocation = location === "all" || incident.location === location;
       const matchesIncidentType = incidentType === "all" || incident.incidentType === incidentType;
-      const reportedAt = parseIncidentReported(incident.reported);
+      const reportedAt = getIncidentReportedTimestamp(incident);
       const matchesPeriod = cutoff === null || (reportedAt !== null && reportedAt >= cutoff);
       const matchesSearch =
         term.length === 0 ||
@@ -346,7 +346,7 @@ function ResponderIncidentsPageInner() {
                   <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">
                     {incident.assignment?.assignee ?? "Not assigned"}
                   </td>
-                  <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">{incident.reported}</td>
+                  <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">{formatIncidentReported(incident)}</td>
                   <td className="border-b border-[var(--border)] px-3 py-3 text-right">
                     <Link
                       href={`/responder/incidents/${encodeURIComponent(incident.id)}${queryString ? `?returnTo=${encodeURIComponent(`/responder/incidents?${queryString}`)}` : ""}`}

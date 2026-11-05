@@ -30,6 +30,7 @@ import {
 } from "../../incidents/incident-status";
 import { ResponderPortalShell } from "../responder-shell";
 import { useCurrentUser } from "../../auth/current-user-provider";
+import { getIncidentReportedTimestamp } from "../../incidents/incident-reported";
 
 // To view this responder dashboard:
 // 1. Set SESSION_USER_ID to Abbas Taofeeq's id ("RSP-03") in src/app/auth/current-user.ts
@@ -62,20 +63,6 @@ const PERIOD_OPTIONS = [
   { value: "30d", label: "Last 30 days" },
   { value: "7d", label: "Last 7 days" },
 ];
-
-const MONTHS: Record<string, number> = {
-  Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
-  Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
-};
-
-function parseReported(value: string): number | null {
-  const datePart = value.split("·")[0]?.trim() ?? "";
-  const match = datePart.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
-  if (!match) return null;
-  const month = MONTHS[match[2]];
-  if (month === undefined) return null;
-  return new Date(Number(match[3]), month, Number(match[1])).getTime();
-}
 
 function periodCutoff(period: string, now: number | null): number | null {
   if (now === null) return null;
@@ -196,7 +183,7 @@ export default function ResponderDashboardPage() {
       if (location !== "all" && incident.location !== location) return false;
       if (incidentType !== "all" && incident.incidentType !== incidentType) return false;
       if (cutoff !== null) {
-        const reported = parseReported(incident.reported);
+        const reported = getIncidentReportedTimestamp(incident);
         if (reported === null || reported < cutoff) return false;
       }
       return true;
@@ -230,8 +217,8 @@ export default function ResponderDashboardPage() {
     .sort((a: IncidentItem, b: IncidentItem) => {
       if (a.status === "Escalated" && b.status !== "Escalated") return -1;
       if (b.status === "Escalated" && a.status !== "Escalated") return 1;
-      const aTime = parseReported(a.reported) ?? 0;
-      const bTime = parseReported(b.reported) ?? 0;
+      const aTime = getIncidentReportedTimestamp(a) ?? 0;
+      const bTime = getIncidentReportedTimestamp(b) ?? 0;
       return bTime - aTime;
     })
     .slice(0, 5);

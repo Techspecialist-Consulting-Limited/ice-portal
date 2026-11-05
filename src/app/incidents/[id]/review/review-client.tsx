@@ -22,6 +22,7 @@ import {
 import { PriorityBadge, StatusBadge } from "../../incident-status";
 import { IncidentPortalShell } from "../../incident-shell";
 import { CURRENT_USER, currentActorLabel } from "../../../auth/current-user";
+import { formatIncidentTimestamp } from "../../incident-reported";
 
 export type ReviewDecision = "verify" | "reject";
 
@@ -30,16 +31,6 @@ const REVIEWER = CURRENT_USER.name;
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
-}
-
-function formatTimestamp(date: Date) {
-  return date.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function SummaryField({ icon: Icon, label, value }: { icon: typeof Flame; label: string; value: string }) {
@@ -205,7 +196,7 @@ export function ReviewPageContent({
           {
             title: isVerify ? "Incident verified" : "Report rejected",
             detail: `${trimmedNote} — Decision recorded by ${currentActorLabel()}.`,
-            time: formatTimestamp(new Date()),
+            time: formatIncidentTimestamp(new Date()),
           },
         ],
       }));

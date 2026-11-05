@@ -6,7 +6,7 @@ import {
   incidentTypeLabel,
   isActiveIncident,
 } from "../../incidents/incident-status";
-import { parseIncidentReported } from "../../incidents/incident-reported";
+import { getIncidentReportedTimestamp } from "../../incidents/incident-reported";
 
 export type ExecutiveReportKind = "summary" | "incidents" | "alerts" | "readiness";
 
@@ -92,7 +92,7 @@ export function filterExecutiveReportSources(
     timestamp !== null && timestamp <= now && (cutoff === null || timestamp >= cutoff);
 
   return {
-    incidents: sources.incidents.filter((incident) => isInRange(parseIncidentReported(incident.reported))),
+    incidents: sources.incidents.filter((incident) => isInRange(getIncidentReportedTimestamp(incident))),
     alerts: sources.alerts.filter((alert) => {
       const timestamp = Date.parse(alert.publishedAt ?? alert.updatedAt);
       return isInRange(Number.isNaN(timestamp) ? null : timestamp);

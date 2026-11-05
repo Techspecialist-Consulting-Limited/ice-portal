@@ -23,7 +23,10 @@ import {
   demoResponders,
   demoResponseTeams,
   type IncidentItem,
+  type IncidentResponder,
 } from "@/app/dashboard/mock-data";
+import { INCIDENT_RESPONDER, USERS, currentActorLabel } from "@/app/auth/current-user";
+import { useCurrentUser } from "@/app/auth/current-user-provider";
 import {
   getIncidentStateServerSnapshot,
   getIncidentStateSnapshot,
@@ -32,24 +35,26 @@ import {
 } from "../../incident-state";
 import { PriorityBadge, StatusBadge } from "../../incident-status";
 import { IncidentPortalShell } from "../../incident-shell";
-import { currentActorLabel } from "@/app/auth/current-user";
+import { formatIncidentTimestamp } from "../../incident-reported";
 
 type TargetType = "responder" | "team";
 
 const MAX_NOTE_LENGTH = 500;
+const assignableResponders: IncidentResponder[] = Object.values(USERS)
+  .filter((user) => user.role === INCIDENT_RESPONDER)
+  .map((user) => {
+    const profile = demoResponders.find((responder) => responder.id === user.id);
+    return {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      team: profile?.team ?? "",
+      department: ("department" in user ? user.department : undefined) ?? profile?.department,
+    };
+  });
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
-}
-
-function formatTimestamp(date: Date) {
-  return date.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function initials(name: string) {
@@ -88,6 +93,7 @@ function SummaryRow({ icon: Icon, label, value }: { icon: typeof Flame; label: s
 
 export function AssignPageContent({ incidentId }: { incidentId: string }) {
   const router = useRouter();
+  const currentUser = useCurrentUser();
 
   const incidents = useSyncExternalStore(
     subscribeToIncidentState,
@@ -142,14 +148,14 @@ export function AssignPageContent({ incidentId }: { incidentId: string }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [confirmAction]);
 
-  const selectedResponder = demoResponders.find((person) => person.id === selectedResponderId) ?? null;
+  const selectedResponder = assignableResponders.find((person) => person.id === selectedResponderId) ?? null;
   const selectedTeam = demoResponseTeams.find((team) => team.id === selectedTeamId) ?? null;
   const hasTarget = targetType === "responder" ? Boolean(selectedResponder) : Boolean(selectedTeam);
 
   const filteredResponders = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return demoResponders;
-    return demoResponders.filter((person) =>
+    if (!q) return assignableResponders;
+    return assignableResponders.filter((person) =>
       [person.name, person.role, person.team, person.department]
         .filter(Boolean)
         .some((value) => (value as string).toLowerCase().includes(q)),
@@ -257,28 +263,26 @@ export function AssignPageContent({ incidentId }: { incidentId: string }) {
     submittingRef.current = true;
     setSubmitting("assignment");
     try {
-      const stamp = formatTimestamp(new Date());
+      const stamp = formatIncidentTimestamp(new Date());
       const assigneeName = targetType === "responder" ? selectedResponder?.name : undefined;
       const assigneeId = targetType === "responder" ? selectedResponder?.id : undefined;
       const assigneeRole = targetType === "responder" ? selectedResponder?.role : undefined;
-      const teamName = targetType === "team" ? selectedTeam?.name : selectedResponder?.team;
+      const teamName = targetType === "team" ? selectedTeam?.name : selectedResponder?.team || undefined;
       const targetLabel = targetType === "responder" ? selectedResponder?.name ?? "" : selectedTeam?.name ?? "";
+      const noteValue = note.trim() || undefined;
 
       const updated = updateIncident(incident.id, (current) => {
         if (["Rejected", "Resolved", "Closed"].includes(current.status)) {
           throw new Error(`Assignment is not available for a ${current.status.toLowerCase()} incident.`);
         }
-
-        const verificationEvent =
+        if (
           current.status === "Verified"
-            ? []
-            : [
-                {
-                  title: "Incident verified",
-                  detail: `Verified by ${currentActorLabel()} as part of responder assignment.`,
-                  time: stamp,
-                },
-              ];
+          && current.assignment?.assigneeId === assigneeId
+          && current.assignment?.team === teamName
+          && current.assignment?.note === noteValue
+        ) {
+          return current;
+        }
 
         return {
           ...current,
@@ -294,18 +298,21 @@ export function AssignPageContent({ incidentId }: { incidentId: string }) {
             assigneeId,
             assigneeRole,
             team: teamName,
-            note: note.trim() || undefined,
+            note: noteValue,
             assignedAt: stamp,
+            assignedBy: currentActorLabel(),
+            assignedById: currentUser.id,
           },
           timeline: [
             ...(current.timeline ?? []),
-            ...verificationEvent,
             {
               title: targetType === "responder" ? "Responder assigned" : "Response team assigned",
-              detail: `${targetLabel} assigned by ${currentActorLabel()} to handle the incident${teamName ? ` (${teamName})` : ""}.${
-                note.trim() ? ` Handover note: ${note.trim()}` : ""
+              detail: `${targetLabel} assigned to handle the incident${teamName ? ` (${teamName})` : ""}. Incident verified as part of this assignment.${
+                noteValue ? ` Handover note: ${noteValue}` : ""
               }`,
               time: stamp,
+              actor: currentActorLabel(),
+              actorId: currentUser.id,
             },
           ],
         };
@@ -430,7 +437,7 @@ export function AssignPageContent({ incidentId }: { incidentId: string }) {
                 className="mt-2 max-h-[272px] space-y-1.5 overflow-y-auto pr-0.5"
               >
                 {targetType === "responder" ? (
-                  demoResponders.length === 0 ? (
+                  assignableResponders.length === 0 ? (
                     <p className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-4 text-[13px] text-[var(--muted-foreground)]">
                       The responder directory could not be loaded. Try again later.
                     </p>
@@ -473,7 +480,7 @@ export function AssignPageContent({ incidentId }: { incidentId: string }) {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[14px] font-medium text-[var(--foreground)]">{person.name}</span>
                             <span className="block truncate text-[12px] text-[var(--muted-foreground)]">
-                              {person.role} · {person.team}
+                              {person.role}{person.team ? ` · ${person.team}` : ""}
                             </span>
                           </span>
                         </label>
@@ -581,7 +588,8 @@ export function AssignPageContent({ incidentId }: { incidentId: string }) {
                 <p className="mt-1 text-[13px] text-[var(--foreground)]">
                   {targetType === "responder" && selectedResponder ? (
                     <>
-                      <span className="font-semibold">{selectedResponder.name}</span> · {selectedResponder.role} · {selectedResponder.team}
+                      <span className="font-semibold">{selectedResponder.name}</span> · {selectedResponder.role}
+                      {selectedResponder.team && ` · ${selectedResponder.team}`}
                     </>
                   ) : selectedTeam ? (
                     <>
@@ -687,6 +695,12 @@ export function AssignPageContent({ incidentId }: { incidentId: string }) {
                       <dd className="font-medium text-[var(--foreground)]">{assignment.assignedAt}</dd>
                     </div>
                   )}
+                  {assignment.assignedBy && (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt>Assigned by</dt>
+                      <dd className="font-medium text-[var(--foreground)]">{assignment.assignedBy}</dd>
+                    </div>
+                  )}
                   {assignment.escalated && (
                     <div className="flex items-center justify-between gap-3">
                       <dt>Escalation</dt>
@@ -715,6 +729,9 @@ export function AssignPageContent({ incidentId }: { incidentId: string }) {
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-[var(--foreground)]">{event.title}</p>
                         <p className="text-[12px] text-[var(--muted-foreground)]">{event.time}</p>
+                        {event.actor && (
+                          <p className="text-[12px] text-[var(--muted-foreground)]">By {event.actor}</p>
+                        )}
                       </div>
                     </li>
                   ))}

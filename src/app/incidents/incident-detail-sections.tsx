@@ -214,6 +214,11 @@ export function IncidentTimelineSection({ events }: { events: IncidentTimelineEv
                     <p className="text-[14px] font-medium text-[var(--foreground)]">{event.title}</p>
                     <span className="text-[12px] text-[var(--muted-foreground)]">{event.time}</span>
                   </div>
+                  {event.actor && (
+                    <p className="mt-1 text-[11px] font-medium text-[var(--muted-foreground)]">
+                      By {event.actor}
+                    </p>
+                  )}
                   <p className="mt-1 text-[13px] leading-5 text-[var(--muted-foreground)]">{event.detail}</p>
                 </div>
               </li>

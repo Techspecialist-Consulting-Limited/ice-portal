@@ -18,7 +18,7 @@ export default function HomePage() {
     <main className={styles.page}>
       <div className={`relative ${styles.imageWindow}`} aria-hidden="true">
         <Image
-          src="/assets/ice-login-image.png"
+          src="/assets/ice-login-image1.png"
           alt=""
           fill
           priority

@@ -21,7 +21,7 @@ import {
 import { summarizeAlertAcknowledgement } from "../../alerts/alert-metrics";
 import { getAlertStateServerSnapshot, getAlertStateSnapshot, subscribeToAlertState } from "../../alerts/alert-state";
 import { getIncidentStateServerSnapshot, getIncidentStateSnapshot, subscribeToIncidentState } from "../../incidents/incident-state";
-import { parseIncidentReported } from "../../incidents/incident-reported";
+import { getIncidentReportedTimestamp } from "../../incidents/incident-reported";
 import { getFeedStateServerSnapshot, getFeedStateSnapshot, subscribeToFeedState } from "../../security-feed/feed-state";
 import { ManagementShell } from "../management-shell";
 
@@ -90,7 +90,7 @@ function buildMonthlyActivity(
   periodDays: number | null,
 ): MonthlyActivity[] {
   const incidentEvents = incidents.flatMap((incident) => {
-    const timestamp = parseIncidentReported(incident.reported);
+    const timestamp = getIncidentReportedTimestamp(incident);
     return timestamp === null ? [] : [{ timestamp, kind: "incident" as const }];
   });
   const alertEvents = alerts.flatMap((alert) => {
@@ -369,7 +369,7 @@ export default function ManagementReadinessPage() {
       [UNCLASSIFIED_INCIDENT_TYPE]: 0,
     };
     incidents.forEach((incident) => {
-      const timestamp = parseIncidentReported(incident.reported);
+      const timestamp = getIncidentReportedTimestamp(incident);
       if (timestamp === null || (now !== null && timestamp > now) || (cutoff !== null && timestamp < cutoff)) return;
       counts[incidentTypeLabel(incident.incidentType)] += 1;
     });

@@ -1,6 +1,7 @@
 import type { AlertItem, IncidentItem } from "@/app/dashboard/mock-data";
 import { alertAcknowledgementRate, alertOutstanding, formatAlertRate, formatAlertTimestamp } from "@/app/alerts/alert-status";
 import { incidentTypeLabel } from "@/app/incidents/incident-status";
+import { getIncidentReportedTimestamp } from "@/app/incidents/incident-reported";
 import type { ReportColumn, ReportDateRange, ReportFilterKey, ReportKind } from "./report-types";
 
 export type ReportRecord = {
@@ -143,7 +144,7 @@ export function buildIncidentRecords(incidents: IncidentItem[]): ReportRecord[] 
         assignee: assigned || "Unassigned",
       },
       href: `/incidents/${encodeURIComponent(incident.id)}`,
-      timestamp: parseIncidentDate(incident.reported),
+      timestamp: getIncidentReportedTimestamp(incident),
       searchText: searchText([
         incident.id,
         incident.title,

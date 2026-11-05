@@ -2,7 +2,9 @@
 
 import { incidents as seedIncidents, type IncidentItem } from "@/app/dashboard/mock-data";
 
-const STORAGE_KEY = "ice-incident-state-v3";
+const STORAGE_KEY = "ice-incident-state-v4";
+const LEGACY_STORAGE_KEY = "ice-incident-state-v3";
+const DEMO_INCIDENTS = seedIncidents.slice(0, 3);
 
 let cachedState: IncidentItem[] | null = null;
 const subscribers = new Set<() => void>();
@@ -35,8 +37,13 @@ export function readIncidentState(): IncidentItem[] {
   }
 
   let stored: string | null;
+  let migratingLegacyState = false;
   try {
     stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === null) {
+      stored = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+      migratingLegacyState = stored !== null;
+    }
   } catch {
     return seedIncidents;
   }
@@ -51,10 +58,15 @@ export function readIncidentState(): IncidentItem[] {
   if (!Array.isArray(parsed) || parsed.length === 0) return seedIncidents;
 
   const seedById = new Map(seedIncidents.map((incident) => [incident.id, incident] as const));
+  const demoIds = new Set(DEMO_INCIDENTS.map((incident) => incident.id));
   let migrated = false;
   const incidentsWithSeedFields = parsed.map((incident) => {
     const seed = seedById.get(incident.id);
     if (!seed) return incident;
+    if (migratingLegacyState && demoIds.has(incident.id)) {
+      migrated = true;
+      return seed;
+    }
     // Location is not editable in the incident workflow, so persisted demo
     // sessions can safely pick up the current seed location.
     if (incident.incidentType && incident.location === seed.location) return incident;
@@ -66,7 +78,13 @@ export function readIncidentState(): IncidentItem[] {
     };
   });
 
-  if (migrated) {
+  if (migratingLegacyState) {
+    const presentIds = new Set(incidentsWithSeedFields.map((incident) => incident.id));
+    for (const demoIncident of DEMO_INCIDENTS) {
+      if (!presentIds.has(demoIncident.id)) incidentsWithSeedFields.push(demoIncident);
+    }
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(incidentsWithSeedFields));
+  } else if (migrated) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(incidentsWithSeedFields));
   }
   return incidentsWithSeedFields;

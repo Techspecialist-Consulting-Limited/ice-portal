@@ -48,6 +48,7 @@ import {
 import { formatFeedTimestamp, isPublished } from "../security-feed/feed-status";
 import {
   INCIDENT_STATUS_ORDER,
+  AssignedResponderBadge,
   PriorityBadge,
   StatusBadge,
   incidentStatusBarColor,
@@ -55,7 +56,12 @@ import {
   isReviewRequired,
 } from "../incidents/incident-status";
 import { IncidentPortalShell } from "../incidents/incident-shell";
-import { organisationDayKey, parseIncidentReported } from "../incidents/incident-reported";
+import {
+  formatIncidentReported,
+  getIncidentReportedTimestamp,
+  organisationDayKey,
+  ORGANISATION_TIME_ZONE,
+} from "../incidents/incident-reported";
 import { useCurrentUser } from "../auth/current-user-provider";
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -293,18 +299,26 @@ export default function RiskDashboardPage() {
       if (priority !== "all" && incident.priority !== priority) return false;
       if (location !== "all" && incident.location !== location) return false;
       if (cutoff !== null) {
-        const reported = parseIncidentReported(incident.reported);
+        const reported = getIncidentReportedTimestamp(incident);
         if (reported === null || reported < cutoff) return false;
       }
       return true;
     });
   }, [incidents, now, period, category, priority, location]);
   const todayKey = now === null ? "" : organisationDayKey(now);
+  const todayLabel = now === null
+    ? ""
+    : new Intl.DateTimeFormat("en-US", {
+        timeZone: ORGANISATION_TIME_ZONE,
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }).format(new Date(now));
   const incidentsReportedToday = useMemo(
     () =>
       todayKey
         ? incidents.filter((incident) => {
-            const reportedAt = parseIncidentReported(incident.reported);
+            const reportedAt = getIncidentReportedTimestamp(incident);
             return reportedAt !== null && organisationDayKey(reportedAt) === todayKey;
           })
         : [],
@@ -431,7 +445,7 @@ export default function RiskDashboardPage() {
             tone="blue"
             title="Incidents today"
             value={incidentsReportedToday.length}
-            subtitle="Reported today"
+            subtitle={`Today · ${todayLabel}`}
             href={queueHref({ reportedOn: todayKey })}
           />
         )}
@@ -484,16 +498,14 @@ export default function RiskDashboardPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] border-separate border-spacing-0 text-left">
+              <table className="w-full min-w-[760px] border-separate border-spacing-0 text-left">
                 <thead>
                   <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
-                    <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Reference / Incident</th>
+                    <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Incident</th>
                     <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Category</th>
-                    <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Location</th>
                     <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Priority</th>
+                    <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Assigned responder</th>
                     <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Status</th>
-                    <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium">Reported</th>
-                    <th className="border-b border-[var(--border)] px-3 py-2.5 font-medium text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -502,26 +514,20 @@ export default function RiskDashboardPage() {
                       <td className="border-b border-[var(--border)] px-3 py-2.5">
                         <Link href={`/incidents/${encodeURIComponent(incident.id)}`} className="block">
                           <div className="font-medium group-hover:text-[var(--primary)]">{incident.title}</div>
-                          <div className="mt-0.5 text-[11px] text-[var(--muted-foreground)]">{incident.id}</div>
+                          <div className="mt-0.5 text-[11px] text-[var(--muted-foreground)]">
+                            {formatIncidentReported(incident)}
+                          </div>
                         </Link>
                       </td>
                       <td className="border-b border-[var(--border)] px-3 py-2.5 text-[var(--muted-foreground)]">{incident.category}</td>
-                      <td className="border-b border-[var(--border)] px-3 py-2.5 text-[var(--muted-foreground)]">{incident.location}</td>
                       <td className="border-b border-[var(--border)] px-3 py-2.5">
                         <PriorityBadge priority={incident.priority} />
                       </td>
                       <td className="border-b border-[var(--border)] px-3 py-2.5">
-                        <StatusBadge status={incident.status} />
+                        <AssignedResponderBadge incident={incident} />
                       </td>
-                      <td className="border-b border-[var(--border)] px-3 py-2.5 text-[var(--muted-foreground)]">{incident.reported}</td>
-                      <td className="border-b border-[var(--border)] px-3 py-2.5 text-right">
-                        <Link
-                          href={`/incidents/${encodeURIComponent(incident.id)}`}
-                          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[13px] font-medium text-[var(--primary)] hover:bg-[var(--primary-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                        >
-                          Review
-                          <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
-                        </Link>
+                      <td className="border-b border-[var(--border)] px-3 py-2.5">
+                        <StatusBadge status={incident.status} />
                       </td>
                     </tr>
                   ))}

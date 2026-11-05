@@ -34,18 +34,9 @@ import { useCurrentUser } from "../../../auth/current-user-provider";
 import { ConfirmDialog } from "../../../alerts/alert-dialog";
 import { escalationBlockReason } from "../../../incidents/incident-workflow";
 import { IncidentMapBanner } from "../../../incidents/incident-map-banner";
+import { formatIncidentTimestamp } from "../../../incidents/incident-reported";
 
 const RESOLVABLE_STATUSES = ["Verified", "Escalated", "Broadcast"] as const;
-
-function formatTimestamp(date: Date) {
-  return date.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function ActionsMenu({
   evidenceHref,
@@ -325,7 +316,7 @@ function IncidentDetailsContent() {
     setActionError("");
     setActionSuccess("");
     try {
-      const stamp = formatTimestamp(new Date());
+      const stamp = formatIncidentTimestamp(new Date());
       const updated = updateIncident(incidentId, (current) => {
         if (!canResponderAccessIncident(current, currentUser)) {
           throw new Error("This incident is no longer assigned to your responder account.");
@@ -337,7 +328,13 @@ function IncidentDetailsContent() {
           ...current,
           timeline: [
             ...(current.timeline ?? []),
-            { title: "Response update posted", detail: `${currentActorLabel()}: ${text}`, time: stamp },
+            {
+              title: "Response update posted",
+              detail: text,
+              time: stamp,
+              actor: currentActorLabel(),
+              actorId: currentUser.id,
+            },
           ],
         };
       });
@@ -373,7 +370,7 @@ function IncidentDetailsContent() {
     setActionError("");
     setActionSuccess("");
     try {
-      const stamp = formatTimestamp(new Date());
+      const stamp = formatIncidentTimestamp(new Date());
       const updated = updateIncident(incidentId, (current) => {
         if (!canResponderAccessIncident(current, currentUser)) {
           throw new Error("This incident is no longer assigned to your responder account.");
@@ -437,7 +434,7 @@ function IncidentDetailsContent() {
     setEscalationMutationError("");
     setActionSuccess("");
     try {
-      const stamp = formatTimestamp(new Date());
+      const stamp = formatIncidentTimestamp(new Date());
       const actor = currentActorLabel();
       const updated = updateIncident(incidentId, (current) => {
         if (!canResponderAccessIncident(current, currentUser)) {
@@ -560,8 +557,11 @@ function IncidentDetailsContent() {
               )}
               <form onSubmit={saveNote} className="border-t border-[var(--border)] pt-4">
                 <label htmlFor="operational-note" className="block text-[13px] font-medium text-[var(--foreground)]">
-                  Response update
+                  Provide response update
                 </label>
+                <p className="mt-1 text-[11px] leading-5 text-[var(--muted-foreground)]">
+                  Record what you have done, what is currently happening, and any further action required.
+                </p>
                 <textarea
                   id="operational-note"
                   value={note}

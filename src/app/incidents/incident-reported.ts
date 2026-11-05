@@ -1,7 +1,8 @@
 /**
  * Shared parser for incident `reportedAt` fixture timestamps.
  *
- * Incident timestamps are formatted like "06 Oct 2026 · 15:35" (UTC).
+ * Legacy incident timestamps are formatted like "06 Oct 2026 · 15:35" (UTC).
+ * New records carry a canonical ISO UTC timestamp in `reportedAt`.
  * Both the Incident Queue (filtering/sorting) and the dashboard KPI
  * selectors must interpret these values identically so scoped incident
  * counts cannot diverge between the two pages.
@@ -25,6 +26,7 @@ const MONTHS = new Map<string, number>(
 );
 
 const REPORTED_AT_PATTERN = /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s*[·•]\s*(\d{2}):(\d{2})$/;
+const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
 export const ORGANISATION_TIME_ZONE = "Africa/Lagos";
 
@@ -44,7 +46,15 @@ export function organisationDayKey(timestamp: number): string {
 
 /** Returns the UTC timestamp (ms) of a reported-at string, or `null` if invalid. */
 export function parseIncidentReported(reportedAt: string): number | null {
-  const match = REPORTED_AT_PATTERN.exec(reportedAt.trim());
+  const rawTimestamp = reportedAt.trim();
+  if (ISO_TIMESTAMP_PATTERN.test(rawTimestamp)) {
+    const timestamp = Date.parse(rawTimestamp);
+    if (Number.isNaN(timestamp)) return null;
+    const normalized = rawTimestamp.includes(".") ? rawTimestamp : rawTimestamp.replace(/Z$/, ".000Z");
+    return new Date(timestamp).toISOString() === normalized ? timestamp : null;
+  }
+
+  const match = REPORTED_AT_PATTERN.exec(rawTimestamp);
   if (!match) {
     return null;
   }
@@ -59,8 +69,8 @@ export function parseIncidentReported(reportedAt: string): number | null {
     return null;
   }
 
-  const value = Date.UTC(year, month, day, hours, minutes);
-  const parsed = new Date(value);
+  const timestamp = Date.UTC(year, month, day, hours, minutes);
+  const parsed = new Date(timestamp);
 
   if (
     parsed.getUTCFullYear() !== year ||
@@ -72,5 +82,45 @@ export function parseIncidentReported(reportedAt: string): number | null {
     return null;
   }
 
-  return value;
+  return timestamp;
+}
+
+export function getIncidentReportedTimestamp(incident: { reported: string; reportedAt?: string }): number | null {
+  return parseIncidentReported(incident.reportedAt ?? incident.reported);
+}
+
+export function formatIncidentTimestamp(date: Date): string {
+  const datePart = new Intl.DateTimeFormat("en-GB", {
+    timeZone: ORGANISATION_TIME_ZONE,
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+  const timePart = new Intl.DateTimeFormat("en-GB", {
+    timeZone: ORGANISATION_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
+  return `${datePart} · ${timePart}`;
+}
+
+export function formatIncidentReported(incident: { reported: string; reportedAt?: string }): string {
+  const timestamp = incident.reportedAt ? getIncidentReportedTimestamp(incident) : null;
+  if (timestamp === null) return incident.reported;
+
+  const date = new Intl.DateTimeFormat("en-US", {
+    timeZone: ORGANISATION_TIME_ZONE,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(timestamp));
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: ORGANISATION_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(timestamp));
+
+  return `${date} · ${time}`;
 }

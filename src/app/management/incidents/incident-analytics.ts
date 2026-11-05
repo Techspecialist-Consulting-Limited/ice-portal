@@ -4,7 +4,7 @@ import {
   incidentTypeLabel,
   isActiveIncident,
 } from "../../incidents/incident-status";
-import { parseIncidentReported } from "../../incidents/incident-reported";
+import { getIncidentReportedTimestamp } from "../../incidents/incident-reported";
 
 export type IncidentAnalyticsFilters = {
   period: string;
@@ -70,7 +70,7 @@ export function filterIncidents(
     if (filters.priority !== "all" && incident.priority !== filters.priority) return false;
     if (filters.incidentType !== "all" && getIncidentValue(incident, "incidentType") !== filters.incidentType) return false;
     if (cutoff !== null) {
-      const reportedAt = parseIncidentReported(incident.reported);
+      const reportedAt = getIncidentReportedTimestamp(incident);
       if (reportedAt === null || reportedAt < cutoff || (now !== null && reportedAt > now)) return false;
     }
     return true;

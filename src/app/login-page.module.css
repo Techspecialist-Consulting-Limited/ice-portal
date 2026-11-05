@@ -19,6 +19,23 @@
   object-position: center;
 }
 
+/* Darkens only the lower-left photo area behind the hero text; fades out before the white panel. */
+.imageWindow::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgb(2 22 18 / 86%) 0%,
+    rgb(2 22 18 / 72%) 30%,
+    rgb(2 22 18 / 38%) 52%,
+    transparent 68%
+  );
+  content: "";
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 46%, transparent 54%);
+  mask-image: linear-gradient(to right, #000 0, #000 46%, transparent 54%);
+  pointer-events: none;
+}
+
 .hero,
 .loginArea {
   position: relative;
@@ -43,6 +60,7 @@
   font-weight: 700;
   letter-spacing: -0.045em;
   line-height: 1.06;
+  text-shadow: 0 2px 20px rgb(0 0 0 / 55%);
   text-wrap: balance;
 }
 
@@ -53,9 +71,10 @@
 .heroDescription {
   max-width: 430px;
   margin: 22px 0 0;
-  color: rgb(255 255 255 / 78%);
+  color: rgb(255 255 255 / 94%);
   font-size: clamp(16px, 1.3vw, 19px);
   line-height: 1.55;
+  text-shadow: 0 1px 14px rgb(0 0 0 / 60%);
   animation: enterFromLeft 620ms 130ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 
@@ -287,6 +306,11 @@
 
   .backgroundImage {
     object-position: left center;
+  }
+
+  .imageWindow::after {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .hero {
