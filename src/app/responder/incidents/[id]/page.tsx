@@ -51,10 +51,14 @@ function ActionsMenu({
   evidenceHref,
   backHref,
   hasEvidence,
+  canEscalate,
+  onEscalate,
 }: {
   evidenceHref: string;
   backHref: string;
   hasEvidence: boolean;
+  canEscalate: boolean;
+  onEscalate: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -97,6 +101,20 @@ function ActionsMenu({
           role="menu"
           className="absolute right-0 z-20 mt-1 w-60 overflow-hidden rounded-xl border border-[var(--border)] bg-white p-1 shadow-[0_10px_30px_rgba(17,24,39,0.12)]"
         >
+          {canEscalate && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onEscalate();
+              }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[var(--foreground)] hover:bg-[var(--muted)]"
+            >
+              <ArrowUpRight className="h-4 w-4 text-[var(--muted-foreground)]" strokeWidth={1.9} />
+              Escalate to Risk Administrator
+            </button>
+          )}
           {hasEvidence ? (
             <Link
               href={evidenceHref}
@@ -283,7 +301,7 @@ function IncidentDetailsContent() {
   // explicit empty state rather than a synthesised "Incident reported" entry,
   // so the page never implies history that was not actually captured.
   const timeline = incident.timeline ?? [];
-  const hasEvidence = Boolean(incident.evidence?.some((item) => !item.demo));
+  const hasEvidence = Boolean(incident.evidence && incident.evidence.length > 0);
   const escalationBlock = incident.assignment?.escalated
     ? "An escalation is already recorded for this incident."
     : escalationBlockReason(incident.status);
@@ -297,7 +315,7 @@ function IncidentDetailsContent() {
     event.preventDefault();
     const text = note.trim();
     if (text.length < 3) {
-      setActionError("Enter an operational note of at least 3 characters.");
+      setActionError("Enter a response update of at least 3 characters.");
       return;
     }
     if (savingActionRef.current) return;
@@ -313,21 +331,21 @@ function IncidentDetailsContent() {
           throw new Error("This incident is no longer assigned to your responder account.");
         }
         if (current.status === "Closed" || current.status === "Rejected") {
-          throw new Error("Operational notes cannot be added to a closed or rejected incident.");
+          throw new Error("Response updates cannot be added to a closed or rejected incident.");
         }
         return {
           ...current,
           timeline: [
             ...(current.timeline ?? []),
-            { title: "Operational note added", detail: `${currentActorLabel()}: ${text}`, time: stamp },
+            { title: "Response update posted", detail: `${currentActorLabel()}: ${text}`, time: stamp },
           ],
         };
       });
       if (!updated) throw new Error("The incident could not be updated.");
       setNote("");
-      setActionSuccess("Operational note added to the incident timeline.");
+      setActionSuccess("Response update posted to the incident timeline.");
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : "The operational note could not be saved.");
+      setActionError(cause instanceof Error ? cause.message : "The response update could not be saved.");
     } finally {
       savingActionRef.current = false;
       setSavingAction(false);
@@ -511,7 +529,17 @@ function IncidentDetailsContent() {
           <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-[15px] font-semibold text-[var(--foreground)]">Actions</h2>
-              <ActionsMenu evidenceHref={evidenceHref} backHref={backHref} hasEvidence={hasEvidence} />
+              <ActionsMenu
+                evidenceHref={evidenceHref}
+                backHref={backHref}
+                hasEvidence={hasEvidence}
+                canEscalate={canEscalate}
+                onEscalate={() => {
+                  setActionError("");
+                  setEscalationMutationError("");
+                  setConfirmEscalation(true);
+                }}
+              />
             </div>
 
             <div className="mt-4 flex flex-col gap-2">
@@ -530,28 +558,9 @@ function IncidentDetailsContent() {
                   No supporting media attached
                 </p>
               )}
-              {canEscalate ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActionError("");
-                    setEscalationMutationError("");
-                    setConfirmEscalation(true);
-                  }}
-                  disabled={savingAction}
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#e0a8a8] bg-white px-4 text-sm font-medium text-[#991b1b] transition-colors hover:bg-[#fff1f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#991b1b] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <ArrowUpRight className="h-[18px] w-[18px]" strokeWidth={2} />
-                  Escalate incident
-                </button>
-              ) : (
-                <p className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-[12px] leading-5 text-[var(--muted-foreground)]">
-                  {escalationBlock ?? "Only the directly assigned responder can escalate this incident."}
-                </p>
-              )}
               <form onSubmit={saveNote} className="border-t border-[var(--border)] pt-4">
                 <label htmlFor="operational-note" className="block text-[13px] font-medium text-[var(--foreground)]">
-                  Add operational note
+                  Response update
                 </label>
                 <textarea
                   id="operational-note"
@@ -561,17 +570,17 @@ function IncidentDetailsContent() {
                   rows={3}
                   aria-describedby="operational-note-hint"
                   className="mt-2 w-full resize-y rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                  placeholder="Record an update for the incident timeline"
+                  placeholder="Describe the actions taken, current progress, or next steps…"
                 />
                 <p id="operational-note-hint" className="mt-1 text-[11px] text-[var(--muted-foreground)]">
-                  Visible in the shared incident history.
+                  This update will be added to the incident timeline.
                 </p>
                 <button
                   type="submit"
                   disabled={savingAction || incident.status === "Closed" || incident.status === "Rejected"}
                   className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {savingAction ? "Saving..." : "Save note"}
+                  {savingAction ? "Posting..." : "Post update"}
                 </button>
               </form>
               {canResolve ? (
@@ -697,10 +706,10 @@ function IncidentDetailsContent() {
               </span>
               <div className="min-w-0">
                 <h2 id="incident-escalation-title" className="text-[16px] font-semibold text-[var(--foreground)]">
-                  Escalate incident
+                  Request additional support
                 </h2>
                 <p className="mt-1 text-[13px] leading-5 text-[var(--muted-foreground)]">
-                  Record why this incident needs additional internal attention. No recipient or notification routing is configured.
+                  Record why this incident needs additional internal attention. This does not notify or contact anyone.
                 </p>
               </div>
             </div>

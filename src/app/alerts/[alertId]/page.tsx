@@ -8,12 +8,10 @@ import {
   ArrowRight,
   Ban,
   CircleCheck,
-  Info,
   MapPin,
   Pencil,
   ShieldCheck,
   Tag,
-  TriangleAlert,
   UsersRound,
 } from "lucide-react";
 import type { AlertItem } from "@/app/dashboard/mock-data";
@@ -32,10 +30,10 @@ import {
   formatAlertTimestamp,
   isActiveAlert,
 } from "../alert-status";
-import { ConfirmDialog, EscalationDialog, Toast } from "../alert-dialog";
+import { ConfirmDialog, Toast } from "../alert-dialog";
 import { hasRecordedEscalation } from "../alert-escalations";
-import { CURRENT_USER, currentActorLabel } from "../../auth/current-user";
-import { PriorityBadge, ToneBadge } from "../../incidents/incident-status";
+import { currentActorLabel } from "../../auth/current-user";
+import { PriorityBadge } from "../../incidents/incident-status";
 import { IncidentPortalShell } from "../../incidents/incident-shell";
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -70,15 +68,6 @@ function MetricTile({ label, value, emphasis = false }: { label: string; value: 
       <p className={cn("mt-1 text-[20px] font-semibold tabular-nums", emphasis ? "text-[#b77909]" : "text-[var(--foreground)]")}>
         {value}
       </p>
-    </div>
-  );
-}
-
-function LimitationNote({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
-      <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--muted-foreground)]" strokeWidth={2} />
-      <p className="text-[12px] leading-5 text-[var(--muted-foreground)]">{children}</p>
     </div>
   );
 }
@@ -138,28 +127,14 @@ function AlertNotFound({ alertId }: { alertId: string }) {
 function AcknowledgementPerformance({ alert }: { alert: AlertItem }) {
   if (alert.status === "Draft") {
     return (
-      <>
-        <p className="mt-2 text-[13px] text-[var(--muted-foreground)]">
-          This alert has not been published yet. Delivery and acknowledgement metrics will appear once it is published.
-        </p>
-        <LimitationNote>
-          Delivery status (sent, delivered, opened) is not tracked for alerts. Acknowledgement is recorded as aggregate counts only.
-        </LimitationNote>
-      </>
+      <p className="mt-2 text-[13px] text-[var(--muted-foreground)]">
+        This alert has not been published yet. Acknowledgement metrics will appear after publication.
+      </p>
     );
   }
 
   if (!alert.acknowledgementRequired) {
-    return (
-      <>
-        <p className="mt-2 text-[13px] text-[var(--muted-foreground)]">
-          Acknowledgement is not required for this alert.
-        </p>
-        <LimitationNote>
-          Delivery status (sent, delivered, opened) is not tracked for alerts. No recipient response data is collected for this alert.
-        </LimitationNote>
-      </>
-    );
+    return <p className="mt-2 text-[13px] text-[var(--muted-foreground)]">Acknowledgement is not required for this alert.</p>;
   }
 
   const rate = alertAcknowledgementRate(alert);
@@ -169,14 +144,9 @@ function AcknowledgementPerformance({ alert }: { alert: AlertItem }) {
 
   if (rate === null || outstanding === null) {
     return (
-      <>
-        <p className="mt-2 text-[13px] text-[var(--muted-foreground)]">
-          Acknowledgement counts are not available for this alert, so a rate cannot be calculated.
-        </p>
-        <LimitationNote>
-          Only the acknowledgement target or the recorded responses are missing. Delivery status is not tracked for alerts.
-        </LimitationNote>
-      </>
+      <p className="mt-2 text-[13px] text-[var(--muted-foreground)]">
+        Acknowledgement counts are not available for this alert, so a rate cannot be calculated.
+      </p>
     );
   }
 
@@ -219,52 +189,38 @@ function AcknowledgementPerformance({ alert }: { alert: AlertItem }) {
         </p>
       )}
 
-      <LimitationNote>
-        Acknowledgement is recorded as aggregate counts only. Recipient-level detail, and delivery or open tracking, are not captured.
-      </LimitationNote>
     </>
   );
 }
 
 function EscalationPanel({ alert }: { alert: AlertItem }) {
-  const escalated = alert.status === "Escalated";
-  const hasRecordedEvent = hasRecordedEscalation(alert);
+  const events = (alert.history ?? []).filter((event) => /escalat/i.test(event.title));
+  if (!hasRecordedEscalation(alert)) return null;
 
   return (
     <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
-      <h2 className="text-[15px] font-semibold text-[var(--foreground)]">Escalation</h2>
-
-      <div className="mt-3 flex items-center gap-2">
-        {escalated ? (
-          <ToneBadge label="Escalated" tone="danger" />
-        ) : (
-          <ToneBadge label="Not escalated" tone="neutral" />
-        )}
-      </div>
-
-      <p className="mt-3 text-[13px] leading-6 text-[var(--muted-foreground)]">
-        {escalated && hasRecordedEvent
-          ? "This alert is escalated and an escalation event is recorded in the alert history."
-          : escalated
-            ? "This alert is marked escalated, but no escalation event has been recorded, so the escalation history has no entry for it."
-            : "This alert is not escalated. Event-level history is shown only when an explicit escalation event is recorded."}
-      </p>
-
-      {hasRecordedEvent && (
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[15px] font-semibold text-[var(--foreground)]">Escalation history</h2>
         <Link
           href={`/alerts/escalations?alert=${encodeURIComponent(alert.id)}`}
-          className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--primary)] hover:text-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--primary)] hover:text-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
         >
-          View escalation history
+          View all
           <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
         </Link>
-      )}
-
-      <LimitationNote>
-        Escalation history is built only from escalation events recorded in the alert history. A lifecycle status of
-        Escalated on its own does not create an escalation record. Level, target, channel and delivery outcome are shown
-        only when they were recorded — they are never inferred.
-      </LimitationNote>
+      </div>
+      <ol className="mt-3 space-y-3">
+        {events.map((event, index) => (
+          <li key={`${event.title}-${index}`} className="flex gap-2.5">
+            <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--primary)]" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-[var(--foreground)]">{event.title}</p>
+              <p className="text-[12px] leading-5 text-[var(--muted-foreground)]">{event.detail}</p>
+              <p className="mt-0.5 text-[11px] text-[var(--muted-foreground)]">{event.time}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
@@ -281,7 +237,6 @@ function AlertDetailContent() {
   const alert = alertList.find((item) => item.id === alertId) ?? null;
 
   const [pending, setPending] = useState<{ action: "withdraw" | "close" } | null>(null);
-  const [escalateOpen, setEscalateOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const toastTimer = useRef<number | null>(null);
 
@@ -296,7 +251,7 @@ function AlertDetailContent() {
   }
 
   const active = isActiveAlert(alert.status);
-  const history = alert.history ?? [];
+  const history = (alert.history ?? []).filter((event) => !/escalat/i.test(event.title));
 
   const runAction = () => {
     if (!pending) return;
@@ -330,37 +285,6 @@ function AlertDetailContent() {
     }
   };
 
-  const runEscalate = (reason: string) => {
-    const iso = new Date().toISOString();
-    const stamp = formatAlertTimestamp(iso);
-    try {
-      const updated = updateAlert(alert.id, (current) => ({
-        ...current,
-        status: "Escalated",
-        updatedAt: iso,
-        history: [
-          ...(current.history ?? []),
-          {
-            title: "Alert escalated",
-            detail: `Escalated by ${currentActorLabel()}. Reason: ${reason}`,
-            time: stamp,
-            escalation: { reason, actor: CURRENT_USER.name },
-          },
-        ],
-      }));
-      if (!updated) throw new Error("Alert could not be updated");
-      setToast({ message: `${alert.id} was escalated.`, tone: "success" });
-    } catch {
-      setToast({ message: "We couldn't escalate the alert. It was left unchanged — please try again.", tone: "error" });
-    } finally {
-      setEscalateOpen(false);
-      if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
-      toastTimer.current = window.setTimeout(() => setToast(null), 4000);
-    }
-  };
-
-  const canEscalate = active && alert.status !== "Escalated";
-
   return (
     <IncidentPortalShell
       activeNav="alerts"
@@ -392,16 +316,6 @@ function AlertDetailContent() {
               <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
               Update alert
             </Link>
-          )}
-          {canEscalate && (
-            <button
-              type="button"
-              onClick={() => setEscalateOpen(true)}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#f0d08a] bg-[#fffaf0] px-3.5 text-sm font-medium text-[#8a5a09] shadow-[var(--shadow-soft)] transition-colors hover:bg-[#fff5e0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b77909]"
-            >
-              <TriangleAlert className="h-[18px] w-[18px]" strokeWidth={2} />
-              Escalate alert
-            </button>
           )}
           {active && (
             <button
@@ -466,15 +380,6 @@ function AlertDetailContent() {
               <h2 id="alert-performance-heading" className="text-[15px] font-semibold text-[var(--foreground)]">
                 Acknowledgement performance
               </h2>
-              {alert.acknowledgementRequired && (
-                <Link
-                  href={`/alerts/${encodeURIComponent(alert.id)}/acknowledgements`}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--primary)] hover:text-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                >
-                  View recipient list
-                  <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
-                </Link>
-              )}
             </div>
             <AcknowledgementPerformance alert={alert} />
           </section>
@@ -521,10 +426,22 @@ function AlertDetailContent() {
             <h2 id="alert-publication-heading" className="text-[15px] font-semibold text-[var(--foreground)]">Publication</h2>
             <dl className="mt-3 divide-y divide-[var(--border)]">
               <RelatedRow label="Reference" value={alert.id} />
-              <RelatedRow label="Source" value={alert.source} />
               <RelatedRow label="Published" value={formatAlertTimestamp(alert.publishedAt)} />
               <RelatedRow label="Last updated" value={formatAlertTimestamp(alert.updatedAt)} />
               <RelatedRow label="Published by" value={alert.publishedBy ?? alert.createdBy ?? "Not available"} />
+              {alert.sourceIncidentId && (
+                <div className="flex items-start justify-between gap-4 py-2.5">
+                  <dt className="text-[13px] text-[var(--muted-foreground)]">Source incident</dt>
+                  <dd className="text-right text-[13px] font-medium">
+                    <Link
+                      href={`/incidents/${encodeURIComponent(alert.sourceIncidentId)}`}
+                      className="text-[var(--primary)] hover:text-[var(--primary-strong)]"
+                    >
+                      {alert.sourceIncidentId}
+                    </Link>
+                  </dd>
+                </div>
+              )}
               {alert.createdBy && alert.createdBy !== alert.publishedBy && (
                 <RelatedRow label="Created by" value={alert.createdBy} />
               )}
@@ -545,22 +462,11 @@ function AlertDetailContent() {
                 value={alert.acknowledgementRequired ? "Yes" : "No"}
               />
             </dl>
-            <LimitationNote>
-              Delivery status (sent, delivered, opened) is not tracked for alerts, and recipients are not listed individually. Only aggregate acknowledgement counts are available.
-            </LimitationNote>
           </section>
 
           <EscalationPanel alert={alert} />
         </aside>
       </div>
-
-      {escalateOpen && (
-        <EscalationDialog
-          alertId={alert.id}
-          onConfirm={runEscalate}
-          onClose={() => setEscalateOpen(false)}
-        />
-      )}
 
       <ConfirmDialog
         open={pending !== null}

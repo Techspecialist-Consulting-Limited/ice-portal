@@ -2,7 +2,7 @@
 
 import { incidents as seedIncidents, type IncidentItem } from "@/app/dashboard/mock-data";
 
-const STORAGE_KEY = "ice-incident-state-v2";
+const STORAGE_KEY = "ice-incident-state-v3";
 
 let cachedState: IncidentItem[] | null = null;
 const subscribers = new Set<() => void>();

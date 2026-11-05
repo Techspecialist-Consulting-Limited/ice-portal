@@ -26,6 +26,22 @@ const MONTHS = new Map<string, number>(
 
 const REPORTED_AT_PATTERN = /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s*[·•]\s*(\d{2}):(\d{2})$/;
 
+export const ORGANISATION_TIME_ZONE = "Africa/Lagos";
+
+const dayKeyFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: ORGANISATION_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Calendar-day key (YYYY-MM-DD) of an instant in the organisation's Africa/Lagos timezone. */
+export function organisationDayKey(timestamp: number): string {
+  const parts = dayKeyFormatter.formatToParts(new Date(timestamp));
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 /** Returns the UTC timestamp (ms) of a reported-at string, or `null` if invalid. */
 export function parseIncidentReported(reportedAt: string): number | null {
   const match = REPORTED_AT_PATTERN.exec(reportedAt.trim());

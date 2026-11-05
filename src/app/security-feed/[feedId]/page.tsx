@@ -9,7 +9,6 @@ import {
   Building2,
   CalendarClock,
   Newspaper,
-  Pencil,
   Pin,
   PinOff,
   Send,
@@ -21,7 +20,6 @@ import { getFeedStateServerSnapshot, getFeedStateSnapshot, subscribeToFeedState,
 import {
   FeedPriorityBadge,
   FeedStatusBadge,
-  canEditFeedItem,
   formatFeedTimestamp,
   canPublishFeedItem,
   isPublished,
@@ -116,9 +114,7 @@ function FeedDetailContent() {
     return <FeedNotFound feedId={feedId} />;
   }
 
-  const detailsHref = `/security-feed/${encodeURIComponent(item.id)}`;
-  const editable = canEditFeedItem(item.status);
-  const publishable = canPublishFeedItem(item.status);
+  const publishable = item.sourceType === "External" && canPublishFeedItem(item.status);
   const withdrawable = isPublished(item.status);
 
   const showToast = (message: string, tone: "success" | "error") => {
@@ -195,15 +191,6 @@ function FeedDetailContent() {
             <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={2} />
             Back to security feed
           </Link>
-          {editable && (
-            <Link
-              href={`${detailsHref}/edit`}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-3.5 text-sm font-medium text-[var(--foreground)] shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-            >
-              <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
-              Edit
-            </Link>
-          )}
           {item.status !== "Archived" && (
             <button
               type="button"

@@ -7,6 +7,7 @@ import type {
   AlertPriority,
   AlertShareability,
 } from "@/app/dashboard/mock-data";
+import { alerts as seedAlerts } from "@/app/dashboard/mock-data";
 import { CURRENT_USER, currentActorLabel } from "@/app/auth/current-user";
 import { createAlert, getNextAlertId, updateAlert } from "./alert-state";
 import { formatAlertTimestamp } from "./alert-status";
@@ -20,16 +21,13 @@ export type AlertDraftFields = {
   title: string;
   summary: string;
   category: string;
+  customCategory: string;
   priority: AlertPriority | "";
   audience: string;
   location: string;
   shareability: AlertShareability;
   acknowledgementRequired: boolean;
   acknowledgementTargetCount: string;
-  source: string;
-  // Date part only. The stored timestamp keeps its original time unless the
-  // author changes the date, and publication is immediate (no scheduling).
-  publicationDate: string;
 };
 
 export type AlertDraft = {
@@ -39,6 +37,8 @@ export type AlertDraft = {
   key: string;
   mode: "create" | "edit";
   alertId?: string;
+  sourceIncidentId?: string;
+  notificationType?: AlertNotificationType;
   fields: AlertDraftFields;
 };
 
@@ -50,10 +50,13 @@ export type AlertDraftErrors = Partial<Record<keyof AlertDraftFields, string>>;
 export const ALERT_ADMINISTRATOR = CURRENT_USER.name;
 
 export const ALERT_PRIORITY_OPTIONS: AlertPriority[] = ["Critical", "Advisory", "Informational"];
-export const ALERT_SHAREABILITY_OPTIONS: AlertShareability[] = ["Internal only", "Shareable", "Restricted"];
+export const ALERT_SHAREABILITY_OPTIONS: AlertShareability[] = ["Internal only", "Shareable"];
+export const ALERT_OTHER_CATEGORY = "__other__";
+export const ALERT_CONFIGURED_CATEGORIES = Array.from(new Set(seedAlerts.map((alert) => alert.category))).sort();
 
 export const MAX_ALERT_TITLE = 90;
 export const MAX_ALERT_SUMMARY = 600;
+export const MAX_ALERT_CATEGORY = 80;
 
 export function alertDraftKey(mode: "create" | "edit", alertId?: string) {
   return mode === "create" ? "create" : `edit:${alertId ?? ""}`;
@@ -64,22 +67,23 @@ export function emptyAlertDraftFields(): AlertDraftFields {
     title: "",
     summary: "",
     category: "",
+    customCategory: "",
     priority: "",
     audience: "",
     location: "",
     shareability: "Internal only",
     acknowledgementRequired: false,
     acknowledgementTargetCount: "",
-    source: "",
-    publicationDate: "",
   };
 }
 
 export function alertDraftFieldsFromItem(item: AlertItem): AlertDraftFields {
+  const isConfiguredCategory = ALERT_CONFIGURED_CATEGORIES.includes(item.category);
   return {
     title: item.title,
     summary: item.summary ?? "",
-    category: item.category,
+    category: isConfiguredCategory ? item.category : ALERT_OTHER_CATEGORY,
+    customCategory: isConfiguredCategory ? "" : item.category,
     priority: item.priority,
     audience: item.audience,
     location: item.location,
@@ -88,9 +92,11 @@ export function alertDraftFieldsFromItem(item: AlertItem): AlertDraftFields {
     acknowledgementTargetCount: item.acknowledgementTargetCount
       ? String(item.acknowledgementTargetCount)
       : "",
-    source: item.source,
-    publicationDate: item.publishedAt ? item.publishedAt.slice(0, 10) : "",
   };
+}
+
+export function alertDraftCategory(fields: AlertDraftFields): string {
+  return fields.category === ALERT_OTHER_CATEGORY ? fields.customCategory.trim() : fields.category;
 }
 
 // Stable signature of the draft fields, used both to detect unsaved changes and
@@ -100,14 +106,13 @@ export function alertDraftSignature(fields: AlertDraftFields): string {
     fields.title,
     fields.summary,
     fields.category,
+    fields.customCategory,
     fields.priority,
     fields.audience,
     fields.location,
     fields.shareability,
     fields.acknowledgementRequired ? "1" : "0",
     fields.acknowledgementTargetCount,
-    fields.source,
-    fields.publicationDate,
   ].join("|");
 }
 
@@ -152,8 +157,6 @@ export function clearAlertDraft() {
 
 export function validateAlertDraft(
   fields: AlertDraftFields,
-  target: "draft" | "publish",
-  today: string,
 ): AlertDraftErrors {
   const next: AlertDraftErrors = {};
   const title = fields.title.trim();
@@ -161,11 +164,17 @@ export function validateAlertDraft(
   else if (title.length < 4) next.title = "Use a title of at least 4 characters.";
 
   if (!fields.summary.trim()) next.summary = "Add the message staff will read. This is required.";
-  if (!fields.category) next.category = "Choose a category.";
+  if (!fields.category) {
+    next.category = "Choose a category.";
+  } else if (fields.category === ALERT_OTHER_CATEGORY) {
+    if (!fields.customCategory.trim()) next.customCategory = "Enter a category.";
+    else if (fields.customCategory.trim().length > MAX_ALERT_CATEGORY) {
+      next.customCategory = `Use no more than ${MAX_ALERT_CATEGORY} characters.`;
+    }
+  }
   if (!fields.priority) next.priority = "Choose a priority.";
   if (!fields.audience.trim()) next.audience = "Say who this alert is for.";
   if (!fields.location.trim()) next.location = "Record the location this alert applies to.";
-  if (!fields.source) next.source = "Choose the source for this alert.";
 
   if (fields.acknowledgementRequired) {
     const count = Number(fields.acknowledgementTargetCount);
@@ -174,10 +183,6 @@ export function validateAlertDraft(
     } else if (!Number.isFinite(count) || !Number.isInteger(count) || count <= 0) {
       next.acknowledgementTargetCount = "Enter a whole number greater than zero.";
     }
-  }
-
-  if (target === "publish" && fields.publicationDate && today && fields.publicationDate > today) {
-    next.publicationDate = "Publishing takes effect immediately — choose today or an earlier date.";
   }
 
   return next;
@@ -214,17 +219,10 @@ export function previewAlertStatus(
 
 function resolvePublishedAt(
   status: AlertLifecycleStatus,
-  fields: AlertDraftFields,
   existing: AlertItem | null | undefined,
   nowIso: string,
 ): string | undefined {
-  const isPublishedState = status !== "Draft";
-  if (!isPublishedState) return existing?.publishedAt;
-  const existingDate = existing?.publishedAt ? existing.publishedAt.slice(0, 10) : undefined;
-  if (fields.publicationDate && fields.publicationDate !== existingDate) {
-    return `${fields.publicationDate}T00:00:00Z`;
-  }
-  return existing?.publishedAt ?? nowIso;
+  return status === "Draft" ? existing?.publishedAt : nowIso;
 }
 
 function buildHistory(
@@ -284,7 +282,7 @@ export function commitAlert(
   const common = {
     title: fields.title.trim(),
     summary: fields.summary.trim() || undefined,
-    category: fields.category,
+    category: alertDraftCategory(fields),
     priority: fields.priority as AlertPriority,
     audience: fields.audience.trim(),
     location: fields.location.trim(),
@@ -297,7 +295,6 @@ export function commitAlert(
     // to zero on first publish so the interface never shows invented progress.
     acknowledgedCount:
       existing?.acknowledgedCount ?? (status === "Draft" ? undefined : 0),
-    source: fields.source,
     notificationType: options.notificationType ?? existing?.notificationType,
     sourceIncidentId: options.sourceIncidentId ?? existing?.sourceIncidentId,
     updatedAt: nowIso,
@@ -308,7 +305,7 @@ export function commitAlert(
       ...common,
       id: getNextAlertId(),
       status,
-      publishedAt: resolvePublishedAt(status, fields, existing, nowIso),
+      publishedAt: resolvePublishedAt(status, existing, nowIso),
       createdBy: ALERT_ADMINISTRATOR,
       publishedBy: status === "Draft" ? undefined : ALERT_ADMINISTRATOR,
       history: buildHistory(status, mode, existing, stamp),
@@ -319,7 +316,7 @@ export function commitAlert(
     ...current,
     ...common,
     status,
-    publishedAt: resolvePublishedAt(status, fields, current, nowIso),
+    publishedAt: resolvePublishedAt(status, current, nowIso),
     publishedBy: status === "Draft" ? current.publishedBy : current.publishedBy ?? ALERT_ADMINISTRATOR,
     createdBy: current.createdBy ?? ALERT_ADMINISTRATOR,
     history: buildHistory(status, mode, current, stamp),

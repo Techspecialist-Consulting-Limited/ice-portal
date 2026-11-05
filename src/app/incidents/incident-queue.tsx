@@ -45,7 +45,7 @@ import {
   incidentTypeLabel,
   isActiveIncident,
 } from "./incident-status";
-import { parseIncidentReported } from "./incident-reported";
+import { organisationDayKey, parseIncidentReported } from "./incident-reported";
 import { IncidentPortalShell } from "./incident-shell";
 import { CURRENT_USER } from "../auth/current-user";
 import type { IncidentItem } from "../dashboard/mock-data";
@@ -150,6 +150,7 @@ function IncidentsPageInner() {
   // dashboard's active-incident count.
   const scope = searchParams.get("scope") ?? "all";
   const period = searchParams.get("period") ?? "all";
+  const reportedOn = searchParams.get("reportedOn") ?? "";
 
   // Keep pagination in sync with the URL: typing in the header search or using
   // browser back/forward must not leave the list on a page that no longer exists
@@ -223,13 +224,15 @@ function IncidentsPageInner() {
       const matchesIncidentType = incidentType === "all" || incident.incidentType === incidentType;
       const reportedAt = parseIncidentReported(incident.reported);
       const matchesPeriod = cutoff === null || (reportedAt !== null && reportedAt >= cutoff);
+      const matchesReportedOn =
+        !reportedOn || (reportedAt !== null && organisationDayKey(reportedAt) === reportedOn);
       const matchesSearch =
         term.length === 0 ||
         `${incident.title} ${incident.id} ${incident.incidentType ?? ""} ${incident.category} ${incident.location} ${incident.reporter ?? ""} ${incident.department ?? ""}`.toLowerCase().includes(term);
 
-      return matchesScope && matchesCategory && matchesPriority && matchesStatus && matchesLocation && matchesIncidentType && matchesPeriod && matchesSearch;
+      return matchesScope && matchesCategory && matchesPriority && matchesStatus && matchesLocation && matchesIncidentType && matchesPeriod && matchesReportedOn && matchesSearch;
     });
-  }, [category, incidentList, location, now, period, priority, scope, searchTerm, status, incidentType]);
+  }, [category, incidentList, location, now, period, priority, reportedOn, scope, searchTerm, status, incidentType]);
 
   const pageCount = Math.max(1, Math.ceil(filteredIncidents.length / INCIDENT_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -246,6 +249,7 @@ function IncidentsPageInner() {
     incidentType !== "all",
     searchTerm.trim().length > 0,
     period !== "all",
+    reportedOn.length > 0,
   ].filter(Boolean).length;
 
   const summaryCards = scope === "assigned" ? [
@@ -486,7 +490,7 @@ function IncidentsPageInner() {
                 <div>
                   <h2 className="text-[18px] font-semibold text-[var(--foreground)]">Incident list</h2>
                   <p className="mt-1 text-[12px] text-[var(--muted-foreground)]">
-                    {filteredIncidents.length} {scope === "assigned" ? "assigned" : ""} incidents · {scope === "active" ? "Active incidents only · " : scope === "assigned" ? "Assigned to you · " : ""}Newest reports first
+                    {filteredIncidents.length} {scope === "assigned" ? "assigned" : ""} incidents · {reportedOn ? `Submitted on ${reportedOn} · ` : ""}{scope === "active" ? "Active incidents only · " : scope === "assigned" ? "Assigned to you · " : ""}Newest reports first
                   </p>
                 </div>
 
@@ -613,4 +617,3 @@ function IncidentsPageInner() {
     </IncidentPortalShell>
   );
 }
-

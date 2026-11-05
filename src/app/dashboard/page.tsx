@@ -55,6 +55,7 @@ import {
   isReviewRequired,
 } from "../incidents/incident-status";
 import { IncidentPortalShell } from "../incidents/incident-shell";
+import { organisationDayKey, parseIncidentReported } from "../incidents/incident-reported";
 import { useCurrentUser } from "../auth/current-user-provider";
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -66,12 +67,13 @@ type QueueFilters = {
   priority?: string;
   location?: string;
   period?: string;
+  reportedOn?: string;
 };
 
 // Single helper for every dashboard → queue deep link. Only valid, non-default
 // filter values are ever written to the URL, and the queue reads these keys on
 // first render, so a filtered queue survives refresh.
-function queueHref({ status, scope, search, category, priority, location, period }: QueueFilters & { status?: string; scope?: string; search?: string }) {
+function queueHref({ status, scope, search, category, priority, location, period, reportedOn }: QueueFilters & { status?: string; scope?: string; search?: string }) {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (scope && scope !== "all") params.set("scope", scope);
@@ -80,6 +82,7 @@ function queueHref({ status, scope, search, category, priority, location, period
   if (location && location !== "all") params.set("location", location);
   if (status && status !== "all") params.set("status", status);
   if (period && period !== "all") params.set("period", period);
+  if (reportedOn) params.set("reportedOn", reportedOn);
   const query = params.toString();
   return query ? `/incidents?${query}` : "/incidents";
 }
@@ -103,24 +106,42 @@ const PERIOD_OPTIONS = [
   { value: "7d", label: "Last 7 days" },
 ];
 
-const MONTHS: Record<string, number> = {
-  Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
-  Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
-};
-
 function formatPercent(value: number, total: number) {
   if (!total) return "0%";
   const percent = (value / total) * 100;
   return `${Number.isInteger(percent) ? percent : percent.toFixed(1)}%`;
 }
 
-function parseReported(value: string): number | null {
-  const datePart = value.split("·")[0]?.trim() ?? "";
-  const match = datePart.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
-  if (!match) return null;
-  const month = MONTHS[match[2]];
-  if (month === undefined) return null;
-  return new Date(Number(match[3]), month, Number(match[1])).getTime();
+let clockSnapshot: number | null = null;
+let clockTimer: number | null = null;
+const clockSubscribers = new Set<() => void>();
+
+function updateClockSnapshot() {
+  clockSnapshot = Date.now();
+  clockSubscribers.forEach((callback) => callback());
+}
+
+function subscribeToClock(callback: () => void) {
+  clockSubscribers.add(callback);
+  if (clockTimer === null) {
+    updateClockSnapshot();
+    clockTimer = window.setInterval(updateClockSnapshot, 60_000);
+  }
+  return () => {
+    clockSubscribers.delete(callback);
+    if (clockSubscribers.size === 0 && clockTimer !== null) {
+      window.clearInterval(clockTimer);
+      clockTimer = null;
+    }
+  };
+}
+
+function getClockSnapshot() {
+  return clockSnapshot;
+}
+
+function getClockServerSnapshot() {
+  return null;
 }
 
 // The current time is resolved on the client only (after mount) so the
@@ -237,7 +258,7 @@ export default function RiskDashboardPage() {
   // Resolve "now" once on the client only. On the server this stays null so the
   // prerender never depends on an unstable value; the default period is "all"
   // (no cutoff) so the first render is identical on both sides.
-  const [now] = useState<number | null>(() => (typeof window === "undefined" ? null : Date.now()));
+  const now = useSyncExternalStore(subscribeToClock, getClockSnapshot, getClockServerSnapshot);
 
   const categoryOptions = useMemo(
     () => [{ value: "all", label: "All categories" }, ...Array.from(new Set(incidents.map((item) => item.category))).sort().map((value) => ({ value, label: value }))],
@@ -272,12 +293,23 @@ export default function RiskDashboardPage() {
       if (priority !== "all" && incident.priority !== priority) return false;
       if (location !== "all" && incident.location !== location) return false;
       if (cutoff !== null) {
-        const reported = parseReported(incident.reported);
+        const reported = parseIncidentReported(incident.reported);
         if (reported === null || reported < cutoff) return false;
       }
       return true;
     });
   }, [incidents, now, period, category, priority, location]);
+  const todayKey = now === null ? "" : organisationDayKey(now);
+  const incidentsReportedToday = useMemo(
+    () =>
+      todayKey
+        ? incidents.filter((incident) => {
+            const reportedAt = parseIncidentReported(incident.reported);
+            return reportedAt !== null && organisationDayKey(reportedAt) === todayKey;
+          })
+        : [],
+    [incidents, todayKey],
+  );
   const filteredIncidents = useMemo(
     () => scopedIncidents.filter((incident) => isActiveIncident(incident.status)),
     [scopedIncidents],
@@ -392,15 +424,17 @@ export default function RiskDashboardPage() {
         )}
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          icon={ClipboardList}
-          tone="blue"
-          title="Active incidents"
-          value={filteredIncidents.length}
-          subtitle={`${reviewRequiredCount} submitted need review`}
-          href={queueHref({ ...filters, scope: "active" })}
-        />
+      <div className={`mt-5 grid gap-4 ${incidentsReportedToday.length > 0 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3"}`}>
+        {incidentsReportedToday.length > 0 && (
+          <KpiCard
+            icon={ClipboardList}
+            tone="blue"
+            title="Incidents today"
+            value={incidentsReportedToday.length}
+            subtitle="Reported today"
+            href={queueHref({ reportedOn: todayKey })}
+          />
+        )}
         <KpiCard
           icon={TriangleAlert}
           tone="red"

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -10,12 +10,8 @@ import {
   ClipboardCheck,
   FilePenLine,
   FileText,
-  Info,
-  ListChecks,
-  MapPin,
   ShieldCheck,
   Tag,
-  TriangleAlert,
   UsersRound,
 } from "lucide-react";
 import { IceSelect, type IceSelectOption } from "@/components/ice-select";
@@ -33,6 +29,8 @@ import {
   alertDraftFieldsFromItem,
   alertDraftKey,
   alertDraftSignature,
+  ALERT_CONFIGURED_CATEGORIES,
+  ALERT_OTHER_CATEGORY,
   clearAlertDraft,
   commitAlert,
   emptyAlertDraftFields,
@@ -46,7 +44,6 @@ import {
   type AlertDraftFields,
 } from "./alert-draft";
 import { AlertStatusBadge, canEditAlert } from "./alert-status";
-import { PriorityBadge } from "../incidents/incident-status";
 import { ConfirmDialog, Toast } from "./alert-dialog";
 import { IncidentPortalShell } from "../incidents/incident-shell";
 
@@ -54,14 +51,13 @@ const FIELD_IDS: Record<keyof AlertDraftFields, string> = {
   title: "alert-title",
   summary: "alert-summary",
   category: "alert-category",
+  customCategory: "alert-customCategory",
   priority: "alert-priority",
   audience: "alert-audience",
   location: "alert-location",
   shareability: "alert-shareability",
   acknowledgementRequired: "alert-acknowledgementRequired",
   acknowledgementTargetCount: "alert-acknowledgementTargetCount",
-  source: "alert-source",
-  publicationDate: "alert-publicationDate",
 };
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -81,8 +77,9 @@ function alertItemSignature(item: AlertItem) {
     item.shareability,
     item.acknowledgementRequired ? "1" : "0",
     item.acknowledgementTargetCount ?? "",
-    item.source,
     item.publishedAt ?? "",
+    item.sourceIncidentId ?? "",
+    item.notificationType ?? "",
   ].join("|");
 }
 
@@ -142,10 +139,6 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
     getAlertDraftServerSnapshot,
   );
   const matchingDraft = draft && draft.key === key ? draft : null;
-  const draftMatches = matchingDraft !== null;
-
-  // Resolved on the client only, so prerendered markup never depends on the clock.
-  const [now] = useState<number | null>(() => (typeof window === "undefined" ? null : Date.now()));
 
   const [fields, setFields] = useState<AlertDraftFields>(emptyAlertDraftFields);
   const [errors, setErrors] = useState<AlertDraftErrors>({});
@@ -155,24 +148,13 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [baseline, setBaseline] = useState("");
   const [seededKey, setSeededKey] = useState("");
-  const [restored, setRestored] = useState(false);
 
   const toastTimer = useRef<number | null>(null);
   const redirectTimer = useRef<number | null>(null);
   const submittingRef = useRef(false);
   const leaveTargetRef = useRef<string | null>(null);
 
-  const categoryOptions = useMemo(() => {
-    const values = new Set(alertList.map((entry) => entry.category));
-    if (item?.category) values.add(item.category);
-    return Array.from(values).sort();
-  }, [alertList, item]);
-
-  const sourceOptions = useMemo(() => {
-    const values = new Set(alertList.map((entry) => entry.source));
-    if (item?.source) values.add(item.source);
-    return Array.from(values).sort();
-  }, [alertList, item]);
+  const categoryOptions = ALERT_CONFIGURED_CATEGORIES;
 
   // Re-seed the editable fields when the underlying record or a restored draft
   // resolves (no effect-setState): matches the Security Feed editor pattern.
@@ -195,7 +177,6 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
     setSeededKey(seedKey);
     setFields(seedFields);
     setBaseline(alertDraftSignature(seedFields));
-    setRestored(draftMatches);
     setErrors({});
   }
 
@@ -204,8 +185,6 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
   const currentStatus = item?.status ?? "Draft";
   const canSaveAsDraft = isCreate || currentStatus === "Draft";
   const editable = isCreate || (item ? canEditAlert(item.status) : false);
-
-  const today = now !== null ? new Date(now).toISOString().slice(0, 10) : "";
 
   const detailHref = item ? `/alerts/${encodeURIComponent(item.id)}` : "/alerts";
   const previewHref = isCreate
@@ -223,8 +202,8 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  function validate(target: "draft" | "publish"): AlertDraftErrors {
-    return validateAlertDraft(fields, target, today);
+  function validate(): AlertDraftErrors {
+    return validateAlertDraft(fields);
   }
 
   function focusFirstError(nextErrors: AlertDraftErrors) {
@@ -233,12 +212,19 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
   }
 
   function buildDraft(): AlertDraft {
-    return { key, mode, alertId, fields };
+    return {
+      key,
+      mode,
+      alertId,
+      sourceIncidentId: matchingDraft?.sourceIncidentId ?? item?.sourceIncidentId,
+      notificationType: matchingDraft?.notificationType ?? item?.notificationType,
+      fields,
+    };
   }
 
   function runSaveDraft() {
     if (submittingRef.current) return;
-    const nextErrors = validate("draft");
+    const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       setSaveError("");
@@ -250,7 +236,13 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
     submittingRef.current = true;
     setSubmitting("draft");
     try {
-      const saved = commitAlert(fields, { mode, existing: item, target: "draft" });
+      const saved = commitAlert(fields, {
+        mode,
+        existing: item,
+        target: "draft",
+        sourceIncidentId: matchingDraft?.sourceIncidentId ?? item?.sourceIncidentId,
+        notificationType: matchingDraft?.notificationType ?? item?.notificationType,
+      });
       if (!saved) throw new Error("Alert could not be saved");
       clearAlertDraft();
       setBaseline(alertDraftSignature(fields));
@@ -267,7 +259,7 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
   }
 
   function goToReview() {
-    const nextErrors = validate("publish");
+    const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       setSaveError("");
@@ -372,13 +364,6 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
         <div className="grid gap-5 xl:grid-cols-[1.7fr_1fr]">
           {/* Left column — the alert's message */}
           <div className="space-y-4">
-            {restored && (
-              <p className="flex items-start gap-2 rounded-xl border border-[#cfe0f5] bg-[#eef4fd] px-3 py-2.5 text-[12px] leading-5 text-[#1d4ed8]">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-                <span>Restored the alert you were reviewing. Nothing is saved until you save a draft or publish.</span>
-              </p>
-            )}
-
             <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
               <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[var(--foreground)]">
                 <FileText className="h-[18px] w-[18px] text-[var(--primary)]" strokeWidth={2} />
@@ -496,16 +481,7 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
             )}
 
             <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
-              <div className="flex items-start gap-2 rounded-xl border border-[#f0d8b8] bg-[#fff4d6] px-3 py-2.5 text-[12px] leading-5 text-[#9a6700]">
-                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-                <span>
-                  Publishing takes effect immediately. There is no scheduling or attachment upload in this
-                  release, and publishing does not send push, email or in-app notifications &mdash; it records the
-                  alert and makes it active.
-                </span>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--border)] pt-4">
+              <div className="flex flex-wrap items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => requestLeave(detailHref)}
@@ -555,15 +531,56 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                       label="Category"
                       invalid={Boolean(errors.category)}
                       value={fields.category}
-                      onChange={(value) => update("category", value)}
+                      onChange={(value) => {
+                        update("category", value);
+                        if (value !== ALERT_OTHER_CATEGORY) update("customCategory", "");
+                      }}
                       options={[
                         { value: "", label: "Choose a category", disabled: true },
                         ...categoryOptions.map((value) => ({ value, label: value })),
+                        { value: ALERT_OTHER_CATEGORY, label: "Other (specify)" },
                       ]}
                     />
                   </div>
                   <FieldError id="alert-category-error" message={errors.category} />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (fields.category === ALERT_OTHER_CATEGORY) {
+                        update("category", "");
+                        update("customCategory", "");
+                      } else {
+                        update("category", ALERT_OTHER_CATEGORY);
+                        window.setTimeout(() => document.getElementById("alert-customCategory")?.focus(), 0);
+                      }
+                    }}
+                    className="mt-1.5 text-[12px] font-medium text-[var(--primary)] hover:text-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  >
+                    {fields.category === ALERT_OTHER_CATEGORY ? "Choose from the list instead" : "Category not listed? Enter your own"}
+                  </button>
                 </div>
+
+                {fields.category === ALERT_OTHER_CATEGORY && (
+                  <div>
+                    <label htmlFor="alert-customCategory" className="block text-[13px] font-semibold text-[var(--foreground)]">
+                      Enter category <span className="text-[#991b1b]">*</span>
+                    </label>
+                    <input
+                      id="alert-customCategory"
+                      value={fields.customCategory}
+                      onChange={(event) => update("customCategory", event.target.value)}
+                      maxLength={80}
+                      placeholder="e.g. Environmental hazard"
+                      aria-invalid={Boolean(errors.customCategory)}
+                      aria-describedby={errors.customCategory ? "alert-customCategory-error" : undefined}
+                      className={cn(
+                        "mt-2 h-11 w-full rounded-xl border bg-[var(--muted)] px-3.5 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[var(--primary)] focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1",
+                        errors.customCategory ? "border-[#d9a0a0]" : "border-[var(--border)]",
+                      )}
+                    />
+                    <FieldError id="alert-customCategory-error" message={errors.customCategory} />
+                  </div>
+                )}
 
                 <div>
                   <label htmlFor="alert-priority" className="block text-[13px] font-semibold text-[var(--foreground)]">
@@ -586,26 +603,6 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                 </div>
 
                 <div>
-                  <label htmlFor="alert-source" className="block text-[13px] font-semibold text-[var(--foreground)]">
-                    Source <span className="text-[#991b1b]">*</span>
-                  </label>
-                  <div className="mt-2">
-                    <SelectControl
-                      id="alert-source"
-                      label="Source"
-                      invalid={Boolean(errors.source)}
-                      value={fields.source}
-                      onChange={(value) => update("source", value)}
-                      options={[
-                        { value: "", label: "Choose a source", disabled: true },
-                        ...sourceOptions.map((value) => ({ value, label: value })),
-                      ]}
-                    />
-                  </div>
-                  <FieldError id="alert-source-error" message={errors.source} />
-                </div>
-
-                <div>
                   <label htmlFor="alert-shareability" className="block text-[13px] font-semibold text-[var(--foreground)]">
                     Shareability
                   </label>
@@ -615,7 +612,12 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                       label="Shareability"
                       value={fields.shareability}
                       onChange={(value) => update("shareability", value as AlertDraftFields["shareability"])}
-                      options={ALERT_SHAREABILITY_OPTIONS.map((value) => ({ value, label: value }))}
+                      options={[
+                        ...ALERT_SHAREABILITY_OPTIONS.map((value) => ({ value, label: value })),
+                        ...(fields.shareability === "Restricted"
+                          ? [{ value: "Restricted", label: "Restricted (legacy)", disabled: true }]
+                          : []),
+                      ]}
                     />
                   </div>
                   <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)]">
@@ -631,17 +633,20 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                 <UsersRound className="h-[18px] w-[18px] text-[var(--primary)]" strokeWidth={2} />
                 Acknowledgement
               </h2>
-              <p className="mt-1 text-[12px] text-[var(--muted-foreground)]">
-                Require recipients to confirm they have seen this alert. The acknowledgement target is recorded
-                with the alert, and no notice is sent to recipients.
-              </p>
-
               <div className="mt-4 space-y-4">
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 py-3">
                   <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-[var(--foreground)]">Require acknowledgement</p>
-                    <p className="mt-0.5 text-[12px] text-[var(--muted-foreground)]">
-                      {fields.acknowledgementRequired ? "Recipients must confirm." : "Not required."}
+                    <p id="alert-acknowledgement-label" className="text-[13px] font-semibold text-[var(--foreground)]">
+                      Require acknowledgement
+                    </p>
+                    <p
+                      id="alert-acknowledgement-state"
+                      className={cn(
+                        "mt-0.5 text-[12px] font-medium",
+                        fields.acknowledgementRequired ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]",
+                      )}
+                    >
+                      {fields.acknowledgementRequired ? "On · Required" : "Off · Not required"}
                     </p>
                   </div>
                   <button
@@ -649,16 +654,23 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                     type="button"
                     role="switch"
                     aria-checked={fields.acknowledgementRequired}
-                    aria-label="Require acknowledgement"
+                    aria-labelledby="alert-acknowledgement-label"
+                    aria-describedby="alert-acknowledgement-state"
                     onClick={() => update("acknowledgementRequired", !fields.acknowledgementRequired)}
                     className={cn(
-                      "inline-flex h-9 items-center gap-2 rounded-xl border px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1",
+                      "relative inline-flex h-7 w-[50px] shrink-0 items-center rounded-full border-2 transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2",
                       fields.acknowledgementRequired
-                        ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
-                        : "border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
+                        ? "border-[var(--primary)] bg-[var(--primary)]"
+                        : "border-[#8a9a92] bg-[#8a9a92]",
                     )}
                   >
-                    {fields.acknowledgementRequired ? "Required" : "Not required"}
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.35)] transition-transform motion-reduce:transition-none",
+                        fields.acknowledgementRequired ? "translate-x-[22px]" : "translate-x-[2px]",
+                      )}
+                    />
                   </button>
                 </div>
 
@@ -698,55 +710,10 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
               </h2>
 
               <div className="mt-4 space-y-4">
-                <div>
-                  <label htmlFor="alert-publicationDate" className="block text-[13px] font-semibold text-[var(--foreground)]">
-                    Publication date
-                  </label>
-                  <input
-                    id="alert-publicationDate"
-                    type="date"
-                    value={fields.publicationDate}
-                    onChange={(event) => update("publicationDate", event.target.value)}
-                    aria-invalid={errors.publicationDate ? true : undefined}
-                    aria-describedby={errors.publicationDate ? "alert-publicationDate-error" : "alert-publicationDate-hint"}
-                    className={cn(
-                      "mt-2 h-11 w-full rounded-xl border bg-[var(--muted)] px-3.5 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[var(--primary)] focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1",
-                      errors.publicationDate ? "border-[#d9a0a0]" : "border-[var(--border)]",
-                    )}
-                  />
-                  <FieldError id="alert-publicationDate-error" message={errors.publicationDate} />
-                  <p id="alert-publicationDate-hint" className="mt-1.5 text-[12px] text-[var(--muted-foreground)]">
-                    Left blank, the alert records the current date when published. Publication is immediate —
-                    there is no scheduling.
-                  </p>
-                </div>
-
                 <div className="flex items-center gap-2 text-[12px] text-[var(--muted-foreground)]">
                   <span>Status</span>
                   <AlertStatusBadge status={isCreate ? "Draft" : currentStatus} />
                 </div>
-              </div>
-            </section>
-
-            <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
-              <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[var(--foreground)]">
-                <ListChecks className="h-[18px] w-[18px] text-[var(--primary)]" strokeWidth={2} />
-                Review step
-              </h2>
-              <p className="mt-2 text-[12px] leading-5 text-[var(--muted-foreground)]">
-                <span className="font-medium text-[var(--foreground)]">Review alert</span> opens a preview of the
-                alert as staff will see it, where you can go back to edit or publish.{" "}
-                <span className="font-medium text-[var(--foreground)]">Save draft</span> stores the alert now
-                without publishing it. Nothing is published until you choose Publish on the review screen.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {fields.priority && <PriorityBadge priority={fields.priority as AlertItem["priority"]} />}
-                {fields.category && (
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted-foreground)]">
-                    <MapPin className="h-3 w-3" strokeWidth={2} />
-                    {fields.location.trim() || "No location"}
-                  </span>
-                )}
               </div>
             </section>
           </aside>

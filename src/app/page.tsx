@@ -1,6 +1,5 @@
 import Image from "next/image";
-import { ArrowRight, Headset } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import styles from "./login-page.module.css";
 
 function MicrosoftMark() {
@@ -41,14 +40,6 @@ export default function HomePage() {
       </section>
 
       <section className={styles.loginArea} aria-labelledby="login-title">
-        <div className={styles.support}>
-          <Headset aria-hidden="true" className={styles.supportIcon} />
-          <div>
-            <p className={styles.supportTitle}>Need help?</p>
-            <Link href="/support" className={styles.supportLink}>Contact ICT Support</Link>
-          </div>
-        </div>
-
         <div className={styles.loginCard}>
           <Image
             src="/evidence/ice-logo-removed-bg.png"

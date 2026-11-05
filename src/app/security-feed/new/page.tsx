@@ -1,5 +1,5 @@
-import { FeedEditor } from "../feed-editor";
+import { redirect } from "next/navigation";
 
-export default function NewFeedItemPage() {
-  return <FeedEditor mode="create" />;
+export default function NewFeedItemPage(): never {
+  redirect("/security-feed");
 }

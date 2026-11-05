@@ -5,12 +5,10 @@ import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from "rea
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
-  ArrowUpRight,
   CircleX,
   Images,
   Megaphone,
   MoreHorizontal,
-  ShieldCheck,
   UserRoundCheck,
 } from "lucide-react";
 import {
@@ -26,6 +24,11 @@ import {
 } from "../incident-detail-sections";
 import { IncidentPortalShell } from "../incident-shell";
 import { IncidentMapBanner } from "../incident-map-banner";
+import {
+  getAlertStateServerSnapshot,
+  getAlertStateSnapshot,
+  subscribeToAlertState,
+} from "@/app/alerts/alert-state";
 
 function ActionsMenu({ evidenceHref, hasEvidence }: { evidenceHref: string; hasEvidence: boolean }) {
   const [open, setOpen] = useState(false);
@@ -163,6 +166,11 @@ function IncidentDetailsContent() {
   const params = useParams();
   const incidentId = String(Array.isArray(params.id) ? params.id[0] : params.id ?? "");
   const incident = useIncident(incidentId);
+  const alerts = useSyncExternalStore(
+    subscribeToAlertState,
+    getAlertStateSnapshot,
+    getAlertStateServerSnapshot,
+  );
 
   const breadcrumbs = (current: React.ReactNode) => (
     <>
@@ -203,6 +211,7 @@ function IncidentDetailsContent() {
   // so the page never implies history that was not actually captured.
   const timeline = incident.timeline ?? [];
   const hasEvidence = Boolean(incident.evidence && incident.evidence.length > 0);
+  const sourceAlert = alerts.find((alert) => alert.sourceIncidentId === incident.id);
   const watchers = incident.watchers != null
     ? `${incident.watchers} administrator${incident.watchers === 1 ? "" : "s"}`
     : "Not available";
@@ -249,53 +258,33 @@ function IncidentDetailsContent() {
             </div>
 
             <div className="mt-4 flex flex-col gap-2">
-              {(incident.status === "Submitted" || incident.status === "Under review") && (
-                <>
-                  <Link
-                    href={`/incidents/${incident.id}/review?decision=verify`}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-sm font-medium text-white shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
-                  >
-                    <ShieldCheck className="h-[18px] w-[18px]" strokeWidth={2} />
-                    Verify incident
-                  </Link>
-
-                  <Link
-                    href={`/incidents/${incident.id}/review?decision=reject`}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#e0a8a8] bg-white px-4 text-sm font-medium text-[#991b1b] transition-colors hover:bg-[#fff1f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#991b1b] focus-visible:ring-offset-2"
-                  >
-                    <CircleX className="h-[18px] w-[18px]" strokeWidth={2} />
-                    Reject report
-                  </Link>
-                </>
-              )}
-
-              {incident.status === "Verified" && (
-                <Link
-                  href={`/incidents/${incident.id}/convert-to-alert`}
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--primary)] bg-[var(--primary-soft)] px-4 text-sm font-medium text-[var(--primary)] transition-colors hover:bg-[var(--primary-softest)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
-                >
-                  <Megaphone className="h-[18px] w-[18px]" strokeWidth={2} />
-                  Convert to alert
-                </Link>
-              )}
-
               {["Submitted", "Under review", "Verified", "Escalated", "Broadcast"].includes(incident.status) && (
                 <Link
                   href={`/incidents/${incident.id}/assign`}
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-sm font-medium text-white shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 >
                   <UserRoundCheck className="h-[18px] w-[18px]" strokeWidth={2} />
                   Assign responder
                 </Link>
               )}
 
-              {["Submitted", "Under review", "Verified"].includes(incident.status) && (
+              {incident.status !== "Rejected" && (
                 <Link
-                  href={`/incidents/${incident.id}/assign?escalate=1`}
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+                  href={sourceAlert ? `/alerts/${encodeURIComponent(sourceAlert.id)}` : `/incidents/${encodeURIComponent(incident.id)}/convert-to-alert`}
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--primary)] bg-[var(--primary-soft)] px-4 text-sm font-medium text-[var(--primary)] transition-colors hover:bg-[var(--primary-softest)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 >
-                  <ArrowUpRight className="h-[18px] w-[18px]" strokeWidth={2} />
-                  Escalate incident
+                  <Megaphone className="h-[18px] w-[18px]" strokeWidth={2} />
+                  {sourceAlert ? "View linked alert" : "Convert to alert"}
+                </Link>
+              )}
+
+              {(incident.status === "Submitted" || incident.status === "Under review") && (
+                <Link
+                  href={`/incidents/${incident.id}/review?decision=reject`}
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#e0a8a8] bg-white px-4 text-sm font-medium text-[#991b1b] transition-colors hover:bg-[#fff1f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#991b1b] focus-visible:ring-offset-2"
+                >
+                  <CircleX className="h-[18px] w-[18px]" strokeWidth={2} />
+                  Reject report
                 </Link>
               )}
 

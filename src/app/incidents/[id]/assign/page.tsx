@@ -1,36 +1,20 @@
 import { Suspense } from "react";
 import { AssignPageContent } from "./assign-client";
 
-type AssignSearchParams = { escalate?: string | string[] };
-
 function AssignFallback() {
   return <div className="p-6 text-sm text-[var(--muted-foreground)]">Loading assignment…</div>;
 }
 
-async function AssignRoute({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<AssignSearchParams>;
-}) {
+async function AssignRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { escalate } = await searchParams;
-  const escalateMode = (Array.isArray(escalate) ? escalate[0] : escalate) === "1";
 
-  return <AssignPageContent incidentId={id} escalateMode={escalateMode} />;
+  return <AssignPageContent incidentId={id} />;
 }
 
-export default function IncidentAssignPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<AssignSearchParams>;
-}) {
+export default function IncidentAssignPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <Suspense fallback={<AssignFallback />}>
-      <AssignRoute params={params} searchParams={searchParams} />
+      <AssignRoute params={params} />
     </Suspense>
   );
 }

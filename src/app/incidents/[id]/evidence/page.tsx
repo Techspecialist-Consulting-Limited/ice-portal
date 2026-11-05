@@ -181,7 +181,7 @@ function EvidencePageContent() {
     : `/incidents/${encodeURIComponent(String(incidentId ?? ""))}`;
   const queueHref = isResponderView ? "/responder/incidents" : "/incidents";
 
-  const evidence = (incident?.evidence ?? []).filter((item) => !isResponderView || !item.demo);
+  const evidence = incident?.evidence ?? [];
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lastIncidentId, setLastIncidentId] = useState(incidentId);
 

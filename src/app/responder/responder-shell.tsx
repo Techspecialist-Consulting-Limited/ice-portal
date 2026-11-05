@@ -6,8 +6,6 @@ import { Suspense, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ClipboardList,
-  ExternalLink,
-  Headset,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -268,19 +266,6 @@ export function ResponderPortalShell({
         </nav>
 
         <footer className="mt-auto shrink-0 px-4 pb-5 pt-6">
-          <Link
-            href="/support"
-            aria-label="Contact ICT Support"
-            className="flex min-h-[58px] items-center gap-3 rounded-xl bg-[#F0F4F2] px-3.5 py-3 transition-colors hover:bg-[#E7EEEA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087443]"
-          >
-            <Headset aria-hidden="true" className="h-5 w-5 shrink-0 text-[#087443]" strokeWidth={2} />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[12px] font-semibold leading-[17px] text-[#18251E]">Need help?</span>
-              <span className="block text-[11px] leading-[16px] text-[#64746C]">Contact ICT Support</span>
-            </span>
-            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#64746C]" strokeWidth={1.8} />
-          </Link>
-
           <SessionRoleSwitcher />
 
           <button type="button" disabled title="Sign out is not available yet." className="mt-3 flex min-h-8 w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-1.5 text-left text-[12px] font-medium text-[#718178] opacity-70">

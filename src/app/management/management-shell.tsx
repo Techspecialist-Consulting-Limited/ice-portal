@@ -8,7 +8,6 @@ import {
   Activity,
   ClipboardList,
   FileBarChart,
-  Headset,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -75,17 +74,6 @@ export function ManagementShell({ children }: { children: ReactNode }) {
         </nav>
 
         <footer className="mt-auto shrink-0 px-4 pb-5 pt-6">
-          <Link
-            href="/support"
-            className="flex min-h-[58px] items-center gap-3 rounded-xl bg-[var(--muted)] px-3.5 py-3 transition-colors hover:bg-[var(--secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-          >
-            <Headset aria-hidden="true" className="h-5 w-5 shrink-0 text-[var(--primary)]" strokeWidth={2} />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[12px] font-semibold leading-[17px] text-[var(--foreground)]">Need help?</span>
-              <span className="block text-[11px] leading-[16px] text-[var(--muted-foreground)]">Contact ICT Support</span>
-            </span>
-          </Link>
-
           <SessionRoleSwitcher />
 
           <button type="button" disabled title="Sign out is not available yet." className="mt-3 flex min-h-8 w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-1.5 text-left text-[12px] font-medium text-[var(--muted-foreground)] opacity-70">

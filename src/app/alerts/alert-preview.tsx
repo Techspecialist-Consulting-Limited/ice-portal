@@ -9,7 +9,6 @@ import {
   CalendarClock,
   CircleAlert,
   FilePenLine,
-  Info,
   MapPin,
   Megaphone,
   Send,
@@ -25,6 +24,7 @@ import {
 } from "./alert-state";
 import {
   alertDraftKey,
+  alertDraftCategory,
   clearAlertDraft,
   commitAlert,
   getAlertDraftServerSnapshot,
@@ -74,13 +74,6 @@ function PreviewSkeleton() {
   );
 }
 
-function formatPublicationDate(value: string, fallback: string): string {
-  if (!value) return fallback;
-  const date = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return value;
-  return formatAlertTimestamp(`${value}T00:00:00Z`);
-}
-
 export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alertId?: string }) {
   const router = useRouter();
   const isCreate = mode === "create";
@@ -100,9 +93,6 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
     getAlertDraftServerSnapshot,
   );
   const matchingDraft = draft && draft.key === key ? draft : null;
-
-  const [now] = useState<number | null>(() => (typeof window === "undefined" ? null : Date.now()));
-  const today = now !== null ? new Date(now).toISOString().slice(0, 10) : "";
 
   const [pendingPublish, setPendingPublish] = useState(false);
   const [submitting, setSubmitting] = useState<"draft" | "publish" | null>(null);
@@ -154,7 +144,7 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
     if (!matchingDraft || submittingRef.current) return;
     const fields = matchingDraft.fields;
 
-    const errors = validateAlertDraft(fields, target, today);
+    const errors = validateAlertDraft(fields);
     if (Object.keys(errors).length > 0) {
       setActionError(
         "This alert is missing required details, so it can't be saved yet. Go back to edit and complete the highlighted fields.",
@@ -167,11 +157,21 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
     submittingRef.current = true;
     setSubmitting(target);
     try {
-      const saved = commitAlert(fields, { mode, existing, target });
+      const saved = commitAlert(fields, {
+        mode,
+        existing,
+        target,
+        sourceIncidentId: matchingDraft.sourceIncidentId ?? existing?.sourceIncidentId,
+        notificationType: matchingDraft.notificationType ?? existing?.notificationType,
+      });
       if (!saved) throw new Error("Alert could not be saved");
       clearAlertDraft();
       showToast(
-        target === "publish" ? `${saved.id} was published.` : `${saved.id} was saved as a draft.`,
+        target === "publish"
+          ? saved.status === "Updated"
+            ? `${saved.id} was updated and remains active.`
+            : `${saved.id} was published and activated.`
+          : `${saved.id} was saved as a draft.`,
         "success",
       );
       setPendingPublish(false);
@@ -295,8 +295,6 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
                   </h2>
                   <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px] text-[var(--muted-foreground)]">
                     <span className="font-medium text-[var(--foreground)]">{reference}</span>
-                    <span aria-hidden="true">·</span>
-                    <span>{fields.source || "No source"}</span>
                   </p>
                 </div>
               </div>
@@ -307,7 +305,7 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
             </div>
 
             <div className="mt-4 grid gap-x-6 gap-y-4 border-t border-[var(--border)] pt-4 sm:grid-cols-2 lg:grid-cols-4">
-              <MetaField icon={Tag} label="Category" value={fields.category || "Not set"} />
+              <MetaField icon={Tag} label="Category" value={alertDraftCategory(fields) || "Not set"} />
               <MetaField icon={UsersRound} label="Audience" value={fields.audience.trim() || "Not set"} />
               <MetaField icon={MapPin} label="Location" value={fields.location.trim() || "Not set"} />
               <MetaField icon={ShieldCheck} label="Shareability" value={fields.shareability} />
@@ -320,12 +318,7 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
               {fields.summary.trim() || <span className="text-[var(--muted-foreground)]">No message yet.</span>}
             </p>
 
-            <div className="mt-4 grid gap-x-6 gap-y-4 border-t border-[var(--border)] pt-4 sm:grid-cols-2 lg:grid-cols-3">
-              <MetaField
-                icon={CalendarClock}
-                label="Publication date"
-                value={formatPublicationDate(fields.publicationDate, "Current date on publish")}
-              />
+            <div className="mt-4 grid gap-x-6 gap-y-4 border-t border-[var(--border)] pt-4 sm:grid-cols-2">
               <MetaField
                 icon={CalendarClock}
                 label="Last updated"
@@ -337,6 +330,17 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
                 value={existing?.publishedBy ?? existing?.createdBy ?? currentActorLabel()}
               />
             </div>
+            {matchingDraft.sourceIncidentId && (
+              <p className="mt-4 border-t border-[var(--border)] pt-3 text-[12px] text-[var(--muted-foreground)]">
+                Source incident{" "}
+                <Link
+                  href={`/incidents/${encodeURIComponent(matchingDraft.sourceIncidentId)}`}
+                  className="font-medium text-[var(--primary)] hover:text-[var(--primary-strong)]"
+                >
+                  {matchingDraft.sourceIncidentId}
+                </Link>
+              </p>
+            )}
           </section>
 
           <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
@@ -388,8 +392,7 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
           <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
             <h2 className="text-[15px] font-semibold text-[var(--foreground)]">Publish</h2>
             <p className="mt-1 text-[12px] leading-5 text-[var(--muted-foreground)]">
-              Publishing records the alert and makes it active. It does not send push, email or in-app
-              notifications.
+              Publishing activates this alert immediately; notifications are not sent in this release.
             </p>
 
             <dl className="mt-4 space-y-3 border-t border-[var(--border)] pt-4 text-[13px]">
@@ -453,15 +456,6 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
             </div>
           </section>
 
-          <section className="rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
-            <div className="flex items-start gap-2 rounded-xl border border-[#cfe0f5] bg-[#eef4fd] px-3 py-2.5 text-[12px] leading-5 text-[#1d4ed8]">
-              <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-              <span>
-                Publishing success here means the alert was recorded and made active. It does not mean any push,
-                email or in-app notification was delivered.
-              </span>
-            </div>
-          </section>
         </aside>
       </div>
 
@@ -470,9 +464,8 @@ export function AlertPreview({ mode, alertId }: { mode: "create" | "edit"; alert
         title={projectedStatus === "Updated" ? "Publish changes" : "Publish alert"}
         description={
           <>
-            This will {isCreate ? "publish a new alert" : `publish changes to ${reference}`}. It becomes active
-            to its audience ({fields.audience.trim() || "no audience set"}). Publishing is immediate and no
-            notification is sent to recipients.
+            This will {isCreate ? "publish a new alert" : `publish changes to ${reference}`} and make it active
+            for {fields.audience.trim() || "the selected audience"}.
           </>
         }
         confirmLabel="Publish alert"

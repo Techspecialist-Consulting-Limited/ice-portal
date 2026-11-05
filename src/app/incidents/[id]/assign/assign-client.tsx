@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  ArrowUpRight,
   CalendarClock,
   CheckCircle2,
   CircleAlert,
@@ -31,10 +30,9 @@ import {
   subscribeToIncidentState,
   updateIncident,
 } from "../../incident-state";
-import { PriorityBadge, StatusBadge, ToneBadge } from "../../incident-status";
+import { PriorityBadge, StatusBadge } from "../../incident-status";
 import { IncidentPortalShell } from "../../incident-shell";
 import { currentActorLabel } from "@/app/auth/current-user";
-import { escalationBlockReason } from "../../incident-workflow";
 
 type TargetType = "responder" | "team";
 
@@ -88,13 +86,7 @@ function SummaryRow({ icon: Icon, label, value }: { icon: typeof Flame; label: s
   );
 }
 
-export function AssignPageContent({
-  incidentId,
-  escalateMode,
-}: {
-  incidentId: string;
-  escalateMode: boolean;
-}) {
+export function AssignPageContent({ incidentId }: { incidentId: string }) {
   const router = useRouter();
 
   const incidents = useSyncExternalStore(
@@ -109,19 +101,16 @@ export function AssignPageContent({
   const [selectedTeamId, setSelectedTeamId] = useState(deriveSelection(incident).teamId);
   const [query, setQuery] = useState("");
   const [note, setNote] = useState(incident?.assignment?.note ?? "");
-  const [escalateReason, setEscalateReason] = useState(incident?.assignment?.escalationReason ?? "");
   const [targetError, setTargetError] = useState("");
-  const [escalateError, setEscalateError] = useState("");
   const [saveError, setSaveError] = useState("");
-  const [submitting, setSubmitting] = useState<"assignment" | "escalation" | null>(null);
+  const [submitting, setSubmitting] = useState<"assignment" | null>(null);
   const [toast, setToast] = useState("");
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"assignment" | null>(null);
   const [seededSignature, setSeededSignature] = useState(incident ? assignmentSignature(incident) : "");
 
   const submittingRef = useRef(false);
   const redirectRef = useRef<number | null>(null);
   const targetGroupRef = useRef<HTMLDivElement>(null);
-  const escalateRef = useRef<HTMLTextAreaElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   // Re-sync the editable fields when the incident's stored assignment resolves
@@ -134,7 +123,6 @@ export function AssignPageContent({
     setSelectedResponderId(selection.responderId);
     setSelectedTeamId(selection.teamId);
     setNote(incident?.assignment?.note ?? "");
-    setEscalateReason(incident?.assignment?.escalationReason ?? "");
   }
 
   useEffect(() => {
@@ -144,15 +132,15 @@ export function AssignPageContent({
   }, []);
 
   useEffect(() => {
-    if (!confirmOpen) return;
+    if (!confirmAction) return;
 
     confirmButtonRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setConfirmOpen(false);
+      if (event.key === "Escape") setConfirmAction(null);
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [confirmOpen]);
+  }, [confirmAction]);
 
   const selectedResponder = demoResponders.find((person) => person.id === selectedResponderId) ?? null;
   const selectedTeam = demoResponseTeams.find((team) => team.id === selectedTeamId) ?? null;
@@ -221,7 +209,6 @@ export function AssignPageContent({
   }
 
   const assignment = incident.assignment;
-  const escalateBlock = escalationBlockReason(incident.status);
   const assignmentHistory = (incident.timeline ?? []).filter((event) => /assign|escalat/i.test(event.title));
 
   const scheduleRedirect = () => {
@@ -254,9 +241,21 @@ export function AssignPageContent({
 
     setTargetError("");
     setSaveError("");
+    setConfirmAction("assignment");
+  };
+
+  const handleConfirmAssignment = () => {
+    setConfirmAction(null);
+    if (submittingRef.current || !hasTarget) return;
+
+    if (["Rejected", "Resolved", "Closed"].includes(incident.status)) {
+      setSaveError(`Assignment is not available for a ${incident.status.toLowerCase()} incident.`);
+      return;
+    }
+
+    setSaveError("");
     submittingRef.current = true;
     setSubmitting("assignment");
-
     try {
       const stamp = formatTimestamp(new Date());
       const assigneeName = targetType === "responder" ? selectedResponder?.name : undefined;
@@ -265,90 +264,47 @@ export function AssignPageContent({
       const teamName = targetType === "team" ? selectedTeam?.name : selectedResponder?.team;
       const targetLabel = targetType === "responder" ? selectedResponder?.name ?? "" : selectedTeam?.name ?? "";
 
-      const updated = updateIncident(incident.id, (current) => ({
-        ...current,
-        assignment: {
-          ...current.assignment,
-          assignee: assigneeName,
-          assigneeId,
-          assigneeRole,
-          team: teamName,
-          note: note.trim() || undefined,
-          assignedAt: stamp,
-        },
-        timeline: [
-          ...(current.timeline ?? []),
-          {
-            title: "Responder assigned",
-            detail: `${targetLabel} assigned to handle the incident${teamName ? ` (${teamName})` : ""}.${
-              note.trim() ? ` Handover note: ${note.trim()}` : ""
-            }`,
-            time: stamp,
-          },
-        ],
-      }));
-
-      if (!updated) throw new Error("Incident could not be updated");
-
-      setToast(`${targetLabel} is now responsible for this incident.`);
-      scheduleRedirect();
-    } catch {
-      submittingRef.current = false;
-      setSubmitting(null);
-      setSaveError("We couldn't save the assignment. The incident was left unchanged — please try again.");
-    }
-  };
-
-  const handleOpenEscalation = () => {
-    if (submittingRef.current) return;
-
-    const blockReason = escalationBlockReason(incident.status);
-    if (blockReason) {
-      setSaveError(blockReason);
-      return;
-    }
-
-    if (!escalateReason.trim()) {
-      setEscalateError("Add an escalation rationale before escalating the incident.");
-      escalateRef.current?.focus();
-      return;
-    }
-
-    setEscalateError("");
-    setConfirmOpen(true);
-  };
-
-  const handleConfirmEscalation = () => {
-    setConfirmOpen(false);
-    if (submittingRef.current) return;
-
-    const reason = escalateReason.trim();
-    if (!reason) return;
-
-    setEscalateError("");
-    setSaveError("");
-    submittingRef.current = true;
-    setSubmitting("escalation");
-
-    try {
-      const stamp = formatTimestamp(new Date());
       const updated = updateIncident(incident.id, (current) => {
-        const blockReason = escalationBlockReason(current.status);
-        if (blockReason) throw new Error(blockReason);
+        if (["Rejected", "Resolved", "Closed"].includes(current.status)) {
+          throw new Error(`Assignment is not available for a ${current.status.toLowerCase()} incident.`);
+        }
+
+        const verificationEvent =
+          current.status === "Verified"
+            ? []
+            : [
+                {
+                  title: "Incident verified",
+                  detail: `Verified by ${currentActorLabel()} as part of responder assignment.`,
+                  time: stamp,
+                },
+              ];
+
         return {
           ...current,
-          status: "Escalated",
+          status: "Verified",
+          reviewStatus: "Completed",
+          reviewer:
+            current.status === "Verified"
+              ? current.reviewer ?? currentActorLabel()
+              : currentActorLabel(),
           assignment: {
             ...current.assignment,
-            escalated: true,
-            escalationReason: reason,
-            escalatedAt: stamp,
+            assignee: assigneeName,
+            assigneeId,
+            assigneeRole,
+            team: teamName,
+            note: note.trim() || undefined,
+            assignedAt: stamp,
           },
           timeline: [
             ...(current.timeline ?? []),
+            ...verificationEvent,
             {
-              title: "Incident escalated",
-              detail: `Escalated by ${currentActorLabel()}. ${reason}`,
+              title: targetType === "responder" ? "Responder assigned" : "Response team assigned",
+              detail: `${targetLabel} assigned by ${currentActorLabel()} to handle the incident${teamName ? ` (${teamName})` : ""}.${
+                note.trim() ? ` Handover note: ${note.trim()}` : ""
+              }`,
               time: stamp,
             },
           ],
@@ -357,12 +313,16 @@ export function AssignPageContent({
 
       if (!updated) throw new Error("Incident could not be updated");
 
-      setToast("Incident escalated. The escalation has been recorded on the incident.");
+      setToast(`${targetLabel} is now responsible for this incident.`);
       scheduleRedirect();
-    } catch {
+    } catch (cause) {
       submittingRef.current = false;
       setSubmitting(null);
-      setSaveError("We couldn't record the escalation. The incident was left unchanged — please try again.");
+      setSaveError(
+        cause instanceof Error
+          ? `We couldn't save the assignment. The incident was left unchanged — ${cause.message}`
+          : "We couldn't save the assignment. The incident was left unchanged — please try again.",
+      );
     }
   };
 
@@ -374,14 +334,14 @@ export function AssignPageContent({
       <span aria-hidden="true">/</span>
       <Link href={`/incidents/${incident.id}`} className="hover:text-[var(--primary)]">{incident.id}</Link>
       <span aria-hidden="true">/</span>
-      <span className="font-medium text-[var(--foreground)]">Assign &amp; Escalate</span>
+      <span className="font-medium text-[var(--foreground)]">Assign responder</span>
     </>
   );
 
   return (
     <IncidentPortalShell
       breadcrumbs={breadcrumbs}
-      pageTitle="Assign &amp; Escalate"
+      pageTitle="Assign responder"
       description={
         <span className="inline-flex flex-wrap items-center gap-2 text-[13px] text-[var(--muted-foreground)]">
           <span className="font-medium text-[var(--foreground)]">{incident.id}</span>
@@ -662,100 +622,6 @@ export function AssignPageContent({
               </button>
             </div>
           </section>
-
-          {/* Main panel C — escalation */}
-          <section
-            className={cn(
-              "rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]",
-              escalateMode && "ring-1 ring-[var(--primary)]",
-            )}
-          >
-            <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[var(--foreground)]">
-              <ArrowUpRight className="h-[18px] w-[18px] text-[var(--primary)]" strokeWidth={2} />
-              Escalation
-            </h2>
-            <p className="mt-1 text-[13px] text-[var(--muted-foreground)]">
-              Raise this incident through the approved escalation path when it is permitted.
-            </p>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-[13px] text-[var(--muted-foreground)]">Current status</span>
-              {assignment?.escalated ? (
-                <>
-                  <ToneBadge label="Escalated" tone="danger" />
-                  {assignment.escalatedAt && (
-                    <span className="text-[12px] text-[var(--muted-foreground)]">{assignment.escalatedAt}</span>
-                  )}
-                </>
-              ) : (
-                <ToneBadge label="No escalation recorded" tone="neutral" />
-              )}
-            </div>
-
-            {assignment?.escalated && assignment.escalationReason && (
-              <p className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-[13px] text-[var(--foreground)]">
-                {assignment.escalationReason}
-              </p>
-            )}
-
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-[12px] text-[var(--muted-foreground)]">
-              <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-              <span>
-                Escalation destination is not configured for this workspace. Escalating records the decision on the
-                incident and does not contact responders automatically.
-              </span>
-            </div>
-
-            {escalateBlock ? (
-              <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#f0d8b8] bg-[#fff4d6] px-3 py-2.5 text-[13px] text-[#9a6700]">
-                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-                <span>{escalateBlock}</span>
-              </div>
-            ) : (
-              <>
-                <div className="mt-4">
-                  <label htmlFor="escalate-reason" className="block text-[13px] font-semibold text-[var(--foreground)]">
-                    Escalation rationale
-                  </label>
-                  <textarea
-                    id="escalate-reason"
-                    ref={escalateRef}
-                    value={escalateReason}
-                    onChange={(event) => {
-                      setEscalateReason(event.target.value);
-                      if (event.target.value.trim()) setEscalateError("");
-                    }}
-                    rows={3}
-                    aria-invalid={escalateError ? true : undefined}
-                    aria-describedby={escalateError ? "escalate-error" : undefined}
-                    placeholder="Explain why this incident needs escalation and any urgency context."
-                    className={cn(
-                      "mt-2 w-full resize-y rounded-xl border bg-[var(--muted)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1",
-                      escalateError ? "border-[#d9a0a0]" : "border-[var(--border)]",
-                    )}
-                  />
-                  {escalateError && (
-                    <p id="escalate-error" role="alert" className="mt-2 flex items-center gap-1.5 text-[12px] text-[#991b1b]">
-                      <CircleAlert className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-                      {escalateError}
-                    </p>
-                  )}
-                </div>
-
-                <div className="mt-5 flex justify-end border-t border-[var(--border)] pt-4">
-                  <button
-                    type="button"
-                    onClick={handleOpenEscalation}
-                    disabled={submitting !== null}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[#e0a8a8] bg-white px-4 py-2.5 text-sm font-medium text-[#991b1b] transition-colors hover:bg-[#fff1f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#991b1b] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    <ArrowUpRight className="h-[18px] w-[18px]" strokeWidth={2} />
-                    {submitting === "escalation" ? "Escalating…" : "Escalate incident"}
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
         </div>
 
         <aside className="space-y-4">
@@ -821,10 +687,12 @@ export function AssignPageContent({
                       <dd className="font-medium text-[var(--foreground)]">{assignment.assignedAt}</dd>
                     </div>
                   )}
-                  <div className="flex items-center justify-between gap-3">
-                    <dt>Escalation</dt>
-                    <dd className="font-medium text-[var(--foreground)]">{assignment.escalated ? "Escalated" : "Not escalated"}</dd>
-                  </div>
+                  {assignment.escalated && (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt>Escalation</dt>
+                      <dd className="font-medium text-[var(--foreground)]">Escalated</dd>
+                    </div>
+                  )}
                 </dl>
 
                 {assignment.note && (
@@ -868,30 +736,33 @@ export function AssignPageContent({
         </div>
       )}
 
-      {confirmOpen && (
+      {confirmAction && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
-          onClick={() => setConfirmOpen(false)}
+          onClick={() => setConfirmAction(null)}
         >
           <div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="escalate-dialog-title"
+            aria-labelledby="incident-action-confirm-title"
             className="w-full max-w-md rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[0_20px_50px_rgba(17,24,39,0.22)]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start gap-3">
-              <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fff4d6] text-[#9a6700]">
-                <CircleAlert className="h-5 w-5" strokeWidth={2} />
+              <span
+                aria-hidden="true"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]"
+              >
+                <CheckCircle2 className="h-5 w-5" strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 id="escalate-dialog-title" className="text-[15px] font-semibold text-[var(--foreground)]">
-                    Escalate incident
+                  <h2 id="incident-action-confirm-title" className="text-[15px] font-semibold text-[var(--foreground)]">
+                    Confirm responder assignment
                   </h2>
                   <button
                     type="button"
-                    onClick={() => setConfirmOpen(false)}
+                    onClick={() => setConfirmAction(null)}
                     aria-label="Close dialog"
                     className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                   >
@@ -899,33 +770,31 @@ export function AssignPageContent({
                   </button>
                 </div>
                 <p className="mt-1 text-[13px] leading-5 text-[var(--muted-foreground)]">
-                  This will mark <span className="font-medium text-[var(--foreground)]">{incident.id}</span> as escalated and
-                  record the escalation on the incident. Continue?
+                  Assigning this incident will mark it as Verified and assign it to{" "}
+                  <span className="font-medium text-[var(--foreground)]">
+                    {targetType === "responder" ? selectedResponder?.name : selectedTeam?.name}
+                  </span>
+                  .
                 </p>
-                {escalateReason.trim() && (
-                  <p className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-[12px] text-[var(--foreground)]">
-                    {escalateReason.trim()}
-                  </p>
-                )}
               </div>
             </div>
 
             <div className="mt-5 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setConfirmOpen(false)}
+                onClick={() => setConfirmAction(null)}
                 className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
               >
-                Keep editing
+                Cancel
               </button>
               <button
                 ref={confirmButtonRef}
                 type="button"
-                onClick={handleConfirmEscalation}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#c62828] px-4 py-2.5 text-sm font-medium text-white shadow-[var(--shadow-soft)] transition-colors hover:bg-[#a81f1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828] focus-visible:ring-offset-2"
+                onClick={handleConfirmAssignment}
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-medium text-white shadow-[var(--shadow-soft)] hover:bg-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
               >
-                <ArrowUpRight className="h-[18px] w-[18px]" strokeWidth={2} />
-                Confirm escalation
+                <CheckCircle2 className="h-[18px] w-[18px]" strokeWidth={2} />
+                Confirm assignment
               </button>
             </div>
           </div>

@@ -13,10 +13,8 @@ import {
   FilePenLine,
   MoreHorizontal,
   Newspaper,
-  Pencil,
   Pin,
   PinOff,
-  Plus,
   RotateCcw,
   Search,
   Send,
@@ -34,7 +32,6 @@ import {
 import {
   FEED_STATUS_ORDER,
   FeedStatusBadge,
-  canEditFeedItem,
   formatFeedTimestamp,
   canPublishFeedItem,
   isDraft,
@@ -211,7 +208,6 @@ function FeedRowMenu({
   }, [open]);
 
   const detailsHref = `/security-feed/${encodeURIComponent(item.id)}`;
-  const editable = canEditFeedItem(item.status);
 
   return (
     <div className="relative" ref={ref}>
@@ -233,7 +229,6 @@ function FeedRowMenu({
           className="absolute right-0 z-20 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--border)] bg-white py-1 shadow-[0_10px_30px_rgba(17,24,39,0.12)]"
         >
           <RowMenuAction label="Open item" icon={ArrowRight} href={detailsHref} />
-          {editable && <RowMenuAction label="Edit item" icon={Pencil} href={`${detailsHref}/edit`} />}
           {item.status !== "Archived" && (
             <RowMenuAction
               label={item.pinned ? "Unpin item" : "Pin item"}
@@ -241,7 +236,7 @@ function FeedRowMenu({
               onSelect={() => onTogglePin(item)}
             />
           )}
-          {canPublishFeedItem(item.status) && (
+          {item.sourceType === "External" && canPublishFeedItem(item.status) && (
             <RowMenuAction label="Publish item" icon={Send} onSelect={() => onAction({ item, action: "publish" })} />
           )}
           {isPublished(item.status) && (
@@ -490,16 +485,7 @@ function SecurityFeedPageInner() {
         </>
       }
       pageTitle="Security Feed"
-      description="Manage security updates and approved situational-awareness content."
-      actions={
-        <Link
-          href="/security-feed/new"
-          className="inline-flex h-11 items-center gap-2 rounded-xl bg-[var(--primary)] px-3.5 text-sm font-medium text-white shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-        >
-          <Plus className="h-[18px] w-[18px]" strokeWidth={2.2} />
-          Create feed item
-        </Link>
-      }
+      description="Monitor security updates and approved source attribution."
     >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <SummaryCard
@@ -676,14 +662,9 @@ function SecurityFeedPageInner() {
           <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center">
             {feedList.length === 0 ? (
               <>
-                <p className="text-[13px] text-[var(--muted-foreground)]">No feed items yet.</p>
-                <Link
-                  href="/security-feed/new"
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--primary-strong)]"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create feed item
-                </Link>
+                <p className="text-[13px] text-[var(--muted-foreground)]">
+                  No external feed items to show. No external source connection is confirmed for this portal.
+                </p>
               </>
             ) : (
               <>
