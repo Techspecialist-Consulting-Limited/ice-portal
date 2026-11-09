@@ -438,17 +438,15 @@ export default function RiskDashboardPage() {
         )}
       </div>
 
-      <div className={`mt-5 grid gap-4 ${incidentsReportedToday.length > 0 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3"}`}>
-        {incidentsReportedToday.length > 0 && (
-          <KpiCard
-            icon={ClipboardList}
-            tone="blue"
-            title="Incidents today"
-            value={incidentsReportedToday.length}
-            subtitle={`Today · ${todayLabel}`}
-            href={queueHref({ reportedOn: todayKey })}
-          />
-        )}
+      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          icon={ClipboardList}
+          tone="red"
+          title="Incidents today"
+          value={incidentsReportedToday.length}
+          subtitle={todayLabel ? `Today · ${todayLabel}` : "Today"}
+          href={queueHref({ reportedOn: todayKey })}
+        />
         <KpiCard
           icon={TriangleAlert}
           tone="red"

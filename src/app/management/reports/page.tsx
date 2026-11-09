@@ -104,8 +104,8 @@ function ExecutiveReportsWorkspace() {
     [alerts, feeds, incidents, now, period.days],
   );
   const reportRows = useMemo(
-    () => buildExecutiveReportRows(activeReport, sources),
-    [activeReport, sources],
+    () => buildExecutiveReportRows(activeReport, sources, period.label),
+    [activeReport, sources, period.label],
   );
   const reportColumns = getExecutiveReportColumns(activeReport);
   const totals = useMemo(() => ({

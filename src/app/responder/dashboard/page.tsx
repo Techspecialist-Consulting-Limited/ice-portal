@@ -267,7 +267,7 @@ export default function ResponderDashboardPage() {
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           icon={ClipboardList}
-          tone="blue"
+          tone="red"
           title="New assignments"
           value={newAssignmentsCount}
           subtitle="Assigned incidents"

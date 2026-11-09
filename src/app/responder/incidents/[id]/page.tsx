@@ -31,7 +31,6 @@ import { ResponderPortalShell } from "../../responder-shell";
 import { canResponderAccessIncident } from "../../responder-access";
 import { currentActorLabel } from "../../../auth/current-user";
 import { useCurrentUser } from "../../../auth/current-user-provider";
-import { ConfirmDialog } from "../../../alerts/alert-dialog";
 import { escalationBlockReason } from "../../../incidents/incident-workflow";
 import { IncidentMapBanner } from "../../../incidents/incident-map-banner";
 import { formatIncidentTimestamp } from "../../../incidents/incident-reported";
@@ -228,6 +227,15 @@ function IncidentDetailsContent() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [confirmEscalation]);
 
+  useEffect(() => {
+    if (!confirmResolution) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !savingActionRef.current) setConfirmResolution(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [confirmResolution]);
+
   const breadcrumbs = (current: React.ReactNode) => (
     <>
       <Link href="/responder/dashboard" className="hover:text-[var(--primary)]">Responder Dashboard</Link>
@@ -349,7 +357,7 @@ function IncidentDetailsContent() {
     }
   };
 
-  const requestResolution = (event: FormEvent<HTMLFormElement>) => {
+  const submitResolution = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const summary = resolutionSummary.trim();
     if (summary.length < 10) {
@@ -358,7 +366,7 @@ function IncidentDetailsContent() {
     }
     setResolutionFieldError("");
     setActionError("");
-    setConfirmResolution(true);
+    resolveIncident();
   };
 
   const resolveIncident = () => {
@@ -584,40 +592,21 @@ function IncidentDetailsContent() {
                 </button>
               </form>
               {canResolve ? (
-                <form onSubmit={requestResolution} className="border-t border-[var(--border)] pt-4">
-                  <label htmlFor="resolution-summary" className="block text-[13px] font-medium text-[var(--foreground)]">
-                    Resolution summary
-                  </label>
-                  <textarea
-                    id="resolution-summary"
-                    value={resolutionSummary}
-                    onChange={(event) => {
-                      setResolutionSummary(event.target.value);
-                      setResolutionFieldError("");
-                    }}
-                    maxLength={1000}
-                    rows={4}
-                    aria-invalid={Boolean(resolutionFieldError)}
-                    aria-describedby={resolutionFieldError ? "resolution-summary-error" : "resolution-summary-hint"}
-                    className="mt-2 w-full resize-y rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                    placeholder="What was done, what was the observed outcome, and is further response needed?"
-                  />
-                  <p id="resolution-summary-hint" className="mt-1 text-[11px] text-[var(--muted-foreground)]">
-                    Record actions taken, the observed outcome, and whether further response is needed. At least 10 characters.
-                  </p>
-                  {resolutionFieldError && (
-                    <p id="resolution-summary-error" role="alert" className="mt-2 text-[12px] text-[#991b1b]">
-                      {resolutionFieldError}
-                    </p>
-                  )}
+                <div className="border-t border-[var(--border)] pt-4">
                   <button
-                    type="submit"
-                    disabled={savingAction}
-                    className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-medium text-white hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                    type="button"
+                    onClick={() => {
+                      setResolutionSummary("");
+                      setResolutionFieldError("");
+                      setActionError("");
+                      setActionSuccess("");
+                      setConfirmResolution(true);
+                    }}
+                    className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#DC2626] px-4 text-sm font-medium text-white shadow-[var(--shadow-soft)] transition-colors hover:bg-[#B91C1C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2"
                   >
-                    {savingAction ? "Saving..." : "Resolve incident"}
+                    Resolve incident
                   </button>
-                </form>
+                </div>
               ) : incident.status === "Resolved" || incident.status === "Closed" ? (
                 <section aria-live="polite" className="border-t border-[var(--border)] pt-4">
                   <h3 className="text-[13px] font-semibold text-[var(--foreground)]">
@@ -674,19 +663,83 @@ function IncidentDetailsContent() {
           </section>
         </aside>
       </div>
-      <ConfirmDialog
-        open={confirmResolution}
-        title={`Resolve incident ${incident.id}?`}
-        description={
-          <span>
-            This records the incident as Resolved. It will not close the incident.
-            <span className="mt-2 block whitespace-pre-wrap text-[var(--foreground)]">{resolutionSummary.trim()}</span>
-          </span>
-        }
-        confirmLabel={savingAction ? "Resolving..." : "Confirm resolution"}
-        onConfirm={resolveIncident}
-        onClose={() => setConfirmResolution(false)}
-      />
+      {confirmResolution && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/30 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !savingAction) setConfirmResolution(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="incident-resolution-title"
+            className="my-auto w-full max-w-lg rounded-[18px] border border-[var(--border)] bg-white p-5 shadow-[0_20px_50px_rgba(17,24,39,0.22)]"
+          >
+            <div className="flex items-start gap-3">
+              <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fee2e2] text-[#991b1b]">
+                <CircleAlert className="h-5 w-5" strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <h2 id="incident-resolution-title" className="text-[16px] font-semibold text-[var(--foreground)]">
+                  Resolve incident {incident.id}
+                </h2>
+                <p className="mt-1 text-[13px] leading-5 text-[var(--muted-foreground)]">
+                  Record a resolution summary before marking this incident as Resolved. This will not close the incident.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={submitResolution} className="mt-4">
+              <label htmlFor="resolution-summary" className="block text-[13px] font-medium text-[var(--foreground)]">
+                Resolution summary <span aria-hidden="true">*</span>
+              </label>
+              <textarea
+                autoFocus
+                id="resolution-summary"
+                value={resolutionSummary}
+                onChange={(event) => {
+                  setResolutionSummary(event.target.value);
+                  setResolutionFieldError("");
+                }}
+                maxLength={1000}
+                rows={5}
+                aria-required="true"
+                aria-invalid={Boolean(resolutionFieldError)}
+                aria-describedby={resolutionFieldError ? "resolution-summary-error" : "resolution-summary-hint"}
+                className="mt-2 w-full resize-y rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                placeholder="What was done, what was the observed outcome, and is further response needed?"
+              />
+              {resolutionFieldError ? (
+                <p id="resolution-summary-error" role="alert" className="mt-1 text-[12px] text-[#991b1b]">
+                  {resolutionFieldError}
+                </p>
+              ) : (
+                <p id="resolution-summary-hint" className="mt-1 text-[11px] text-[var(--muted-foreground)]">
+                  Record actions taken, the observed outcome, and whether further response is needed. At least 10 characters.
+                </p>
+              )}
+              <div className="mt-5 flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={savingAction}
+                  onClick={() => setConfirmResolution(false)}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAction}
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-[#DC2626] px-4 text-sm font-medium text-white hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {savingAction ? "Resolving..." : "Resolve incident"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
       {confirmEscalation && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/30 p-4"

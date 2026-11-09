@@ -155,7 +155,7 @@ function ResponderIncidentsPageInner() {
       label: "Assigned incidents",
       value: filteredIncidents.length,
       icon: ClipboardList,
-      tone: "blue",
+      tone: "red",
       detail: "Assigned to you",
     },
     {

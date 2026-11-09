@@ -349,7 +349,7 @@ export default function ReportsPage() {
   );
   const currentUser = useCurrentUser();
 
-  const [kind, setKind] = useState<ReportKind>("alert");
+  const [kind, setKind] = useState<ReportKind>("incident");
   const [filters, setFilters] = useState<ReportFilters>({});
   const [query, setQuery] = useState("");
   const [range, setRange] = useState<ReportDateRange>(DEFAULT_DATE_RANGE);
@@ -443,9 +443,9 @@ export default function ReportsPage() {
     const raw = new URLSearchParams(reportLocation.split("?")[1] ?? "").get("report");
 
     if (raw === null) {
-      if (kindRef.current !== "alert") {
-        setFilters((current) => reconcileFilters(current, getReportDefinition("alert"), recordsByKind.alert));
-        setKind("alert");
+      if (kindRef.current !== "incident") {
+        setFilters((current) => reconcileFilters(current, getReportDefinition("incident"), recordsByKind.incident));
+        setKind("incident");
         setPage(1);
         setSort(null);
         setExportError(null);
@@ -586,7 +586,6 @@ export default function ReportsPage() {
               configure or generate step.
             </p>
           </div>
-          <p className="text-[11px] leading-4 text-[var(--muted-foreground)]">Data source: {DATA_SOURCE_LABEL}</p>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

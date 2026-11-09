@@ -4,15 +4,14 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { History, KeyRound, LayoutDashboard, Layers3, LogOut, Menu, Search, Settings2, ShieldCheck, UsersRound, X, HelpCircle, ChevronDown, Home } from "lucide-react";
+import { History, KeyRound, LayoutDashboard, Layers3, LogOut, Menu, Search, ShieldCheck, UsersRound, X, HelpCircle, ChevronDown, Home } from "lucide-react";
 import { SessionRoleSwitcher } from "../auth/session-role-switcher";
 
 const navigation = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/system-admin/dashboard" },
-  { label: "Portal users", icon: UsersRound, href: "/system-admin/users" },
+  { label: "Users", icon: UsersRound, href: "/system-admin/users" },
   { label: "Roles & access", icon: KeyRound, href: "/system-admin/roles" },
   { label: "Custom roles", icon: Layers3, href: "/system-admin/custom-roles" },
-  { label: "Organization settings", icon: Settings2, href: "/system-admin/settings" },
   { label: "Activity log", icon: History, href: "/system-admin/activity" },
 ] as const;
 
@@ -22,10 +21,9 @@ export function SystemAdminShell({ children }: { children: ReactNode }) {
 
   const getBreadcrumbLabel = () => {
     if (pathname === "/system-admin/dashboard") return "Dashboard";
-    if (pathname === "/system-admin/users") return "Portal users";
+    if (pathname === "/system-admin/users") return "Users";
     if (pathname === "/system-admin/roles") return "Roles & access";
     if (pathname === "/system-admin/custom-roles") return "Custom roles";
-    if (pathname === "/system-admin/settings") return "Organization settings";
     if (pathname === "/system-admin/activity") return "Activity log";
     return "";
   };

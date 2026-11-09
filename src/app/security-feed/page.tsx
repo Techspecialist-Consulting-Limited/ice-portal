@@ -37,7 +37,6 @@ import {
   isDraft,
   isPending,
   isPublished,
-  sourceTypeLabel,
 } from "./feed-status";
 import { ConfirmDialog, Toast } from "../alerts/alert-dialog";
 import { IncidentPortalShell } from "../incidents/incident-shell";
@@ -55,12 +54,6 @@ const PERIOD_OPTIONS = [
   { value: "today", label: "Today" },
   { value: "7d", label: "Last 7 days" },
   { value: "30d", label: "Last 30 days" },
-];
-
-const SOURCE_TYPE_OPTIONS = [
-  { value: "all", label: "All sources" },
-  { value: "Internal", label: "Internal only" },
-  { value: "External", label: "External only" },
 ];
 
 type SortKey = "title" | "category" | "status" | "updated";
@@ -534,7 +527,6 @@ function SecurityFeedPageInner() {
         <FilterSelect label="Status" icon={SlidersHorizontal} value={status} options={STATUS_OPTIONS} onChange={(value) => applyFilters({ status: value })} />
         <FilterSelect label="Category" icon={Newspaper} value={category} options={categoryOptions} onChange={(value) => applyFilters({ category: value })} />
         <FilterSelect label="Source" icon={ExternalLink} value={source} options={sourceOptions} onChange={(value) => applyFilters({ source: value })} />
-        <FilterSelect label="Source type" icon={ExternalLink} value={sourceType} options={SOURCE_TYPE_OPTIONS} onChange={(value) => applyFilters({ sourceType: value })} />
         <FilterSelect label="Reporting period" icon={SlidersHorizontal} value={period} options={PERIOD_OPTIONS} onChange={(value) => applyFilters({ period: value })} />
         <div className="flex items-end">
           <button
@@ -616,19 +608,8 @@ function SecurityFeedPageInner() {
                       </Link>
                     </td>
                     <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">{item.category}</td>
-                    <td className="border-b border-[var(--border)] px-3 py-3">
-                      <div className="flex items-center gap-1.5 text-[var(--foreground)]">
-                        <span>{item.source}</span>
-                        {item.sourceType === "External" && (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-md bg-[#eaf3ff] px-1.5 py-0.5 text-[11px] font-medium text-[#1d4ed8]"
-                            title={sourceTypeLabel(item.sourceType)}
-                          >
-                            <ExternalLink className="h-3 w-3" strokeWidth={2} />
-                            External
-                          </span>
-                        )}
-                      </div>
+                    <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--foreground)]">
+                      {item.source}
                     </td>
                     <td className="border-b border-[var(--border)] px-3 py-3">
                       <FeedStatusBadge status={item.status} />

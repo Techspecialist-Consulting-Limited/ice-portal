@@ -344,10 +344,14 @@ export function IncidentPortalShell({
                 <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
                   <span className="truncate">{label}</span>
                   {needsAttention && (
+                    // Placeholder badge: shows the review-required count as a
+                    // static digit instead of the old blinking dot. Not final UI.
                     <span
                       aria-hidden="true"
-                      className="ice-nav-attention-dot h-2 w-2 shrink-0 rounded-full bg-[#DC2626]"
-                    />
+                      className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[#DC2626] px-1 text-[9px] font-semibold leading-none text-white"
+                    >
+                      {reviewRequiredCount}
+                    </span>
                   )}
                 </span>
               </Link>

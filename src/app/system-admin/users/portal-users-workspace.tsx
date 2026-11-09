@@ -226,7 +226,7 @@ export function PortalUsersWorkspace({ initialRole }: { initialRole?: string }) 
         <div>
           <p className="text-[11px] font-medium text-[var(--muted-foreground)]">System Administrator · Account access</p>
           <h1 className="mt-1 text-[28px] font-semibold leading-9 tracking-tight text-[var(--foreground)] sm:text-[32px]">
-            Portal users
+            Users
           </h1>
           <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-[var(--muted-foreground)]">
             View and manage accounts with access to the ICE portal.

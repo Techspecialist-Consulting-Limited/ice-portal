@@ -158,7 +158,7 @@ export default async function SystemAdminDashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Link
             href="/system-admin/users"
             className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] transition-colors"
@@ -167,7 +167,7 @@ export default async function SystemAdminDashboardPage() {
               <UsersRound className="h-5 w-5" />
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-[var(--foreground)]">Manage portal users</p>
+              <p className="text-[13px] font-semibold text-[var(--foreground)]">Manage users</p>
               <p className="text-[11px] text-[var(--muted-foreground)]">Add, edit, and manage user accounts.</p>
             </div>
             <ChevronRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
@@ -195,19 +195,6 @@ export default async function SystemAdminDashboardPage() {
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-[var(--foreground)]">Create custom roles</p>
               <p className="text-[11px] text-[var(--muted-foreground)]">Define custom access roles.</p>
-            </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
-          </Link>
-          <Link
-            href="/system-admin/settings"
-            className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] transition-colors"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--primary-soft)] text-[var(--primary)]">
-              <Zap className="h-5 w-5" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-[var(--foreground)]">Organization settings</p>
-              <p className="text-[11px] text-[var(--muted-foreground)]">Update portal configuration.</p>
             </div>
             <ChevronRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
           </Link>

@@ -198,7 +198,7 @@ function alertRows(alerts: AlertItem[]): ExecutiveReportRow[] {
   );
 }
 
-function readinessRows(sources: ExecutiveReportSources): ExecutiveReportRow[] {
+function readinessRows(sources: ExecutiveReportSources, periodLabel: string): ExecutiveReportRow[] {
   const current = EXECUTIVE_ADOPTION_SNAPSHOT.current;
   const previous = EXECUTIVE_ADOPTION_SNAPSHOT.previous;
   const acknowledgement = summarizeAlertAcknowledgement(sources.alerts);
@@ -213,14 +213,14 @@ function readinessRows(sources: ExecutiveReportSources): ExecutiveReportRow[] {
     row("Staff adoption", "Feed readership rate", previous.label, {
       total: `${Math.round((previous.feedReaders / previous.signedIn) * 100)}%`,
     }),
-    row("Acknowledgement", "Acknowledgement rate", "Selected period", {
+    row("Acknowledgement", "Acknowledgement rate", periodLabel, {
       total: acknowledgement.available
         ? `${Math.round(acknowledgement.completionRate ?? 0)}%`
         : "Not available",
     }),
-    row("Activity", "Incidents reported", "Selected period", { total: sources.incidents.length }),
-    row("Activity", "Alerts issued", "Selected period", { total: sources.alerts.length }),
-    row("Activity", "Security Feed items published", "Selected period", { total: sources.feeds.length }),
+    row("Activity", "Incidents reported", periodLabel, { total: sources.incidents.length }),
+    row("Activity", "Alerts issued", periodLabel, { total: sources.alerts.length }),
+    row("Activity", "Security Feed items published", periodLabel, { total: sources.feeds.length }),
   ];
   const typeRows = INCIDENT_TYPE_OPTIONS.map(({ value, label }) =>
     row("Reports received", "Incident report type", label, {
@@ -241,25 +241,26 @@ function readinessRows(sources: ExecutiveReportSources): ExecutiveReportRow[] {
 export function buildExecutiveReportRows(
   kind: ExecutiveReportKind,
   sources: ExecutiveReportSources,
+  periodLabel: string,
 ): ExecutiveReportRow[] {
   if (kind === "incidents") return incidentRows(sources.incidents);
   if (kind === "alerts") return alertRows(sources.alerts);
-  if (kind === "readiness") return readinessRows(sources);
+  if (kind === "readiness") return readinessRows(sources, periodLabel);
 
   const acknowledgement = summarizeAlertAcknowledgement(sources.alerts);
   return [
-    row("Executive summary", "Incidents reported", "Selected period", { total: sources.incidents.length }),
-    row("Executive summary", "Active incidents", "Selected period", {
+    row("Executive summary", "Incidents reported", periodLabel, { total: sources.incidents.length }),
+    row("Executive summary", "Active incidents", periodLabel, {
       total: sources.incidents.filter((incident) => isActiveIncident(incident.status)).length,
     }),
-    row("Executive summary", "Critical incidents", "Selected period", {
+    row("Executive summary", "Critical incidents", periodLabel, {
       total: sources.incidents.filter((incident) => incident.priority === "Critical").length,
     }),
-    row("Executive summary", "Resolved / closed incidents", "Selected period", {
+    row("Executive summary", "Resolved / closed incidents", periodLabel, {
       total: sources.incidents.filter((incident) => incident.status === "Resolved" || incident.status === "Closed").length,
     }),
-    row("Executive summary", "Alerts issued", "Selected period", { total: sources.alerts.length }),
-    row("Executive summary", "Live alerts", "Selected period", {
+    row("Executive summary", "Alerts issued", periodLabel, { total: sources.alerts.length }),
+    row("Executive summary", "Live alerts", periodLabel, {
       total: sources.alerts.filter((alert) => isActiveAlert(alert.status)).length,
     }),
     row("Executive summary", "Acknowledgements received", "Required alerts", {
@@ -277,7 +278,7 @@ export function buildExecutiveReportRows(
     row("Executive summary", "Feed readership rate", EXECUTIVE_ADOPTION_SNAPSHOT.current.label, {
       total: `${Math.round((EXECUTIVE_ADOPTION_SNAPSHOT.current.feedReaders / EXECUTIVE_ADOPTION_SNAPSHOT.current.signedIn) * 100)}%`,
     }),
-    row("Executive summary", "Security Feed items published", "Selected period", { total: sources.feeds.length }),
+    row("Executive summary", "Security Feed items published", periodLabel, { total: sources.feeds.length }),
     ...INCIDENT_TYPE_OPTIONS.map(({ value, label }) =>
       row("Executive summary", "Incident report type", label, {
         total: sources.incidents.filter((incident) => incidentTypeLabel(incident.incidentType) === value).length,

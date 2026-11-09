@@ -77,7 +77,7 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
     description: "Review reported incidents with their report type, category, workflow state, assignment and location.",
     icon: ClipboardList,
     dateBasisNote: "Filtered by the date each incident was reported.",
-    filters: ["reportType", "category", "priority", "status", "reviewStatus", "location", "department", "assignee"],
+    filters: ["reportType", "category", "priority", "status", "reviewStatus", "department", "assignee"],
     columns: [
       { key: "reference", label: "Reference", link: true, sort: "text" },
       { key: "title", label: "Incident", sort: "text" },
