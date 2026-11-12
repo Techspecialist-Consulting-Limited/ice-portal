@@ -13,7 +13,6 @@ import {
   Pin,
   PinOff,
   Send,
-  ShieldCheck,
   Tag,
   TriangleAlert,
 } from "lucide-react";
@@ -24,7 +23,6 @@ import type {
   FeedLifecycleStatus,
   FeedPriority,
 } from "@/app/dashboard/mock-data";
-import { feedSources } from "@/app/dashboard/mock-data";
 import {
   createFeedItem,
   getFeedStateServerSnapshot,
@@ -33,7 +31,7 @@ import {
   subscribeToFeedState,
   updateFeedItem,
 } from "./feed-state";
-import { FeedPriorityBadge, FeedStatusBadge, formatFeedTimestamp, sourceTypeLabel } from "./feed-status";
+import { FeedPriorityBadge, FeedStatusBadge, formatFeedTimestamp } from "./feed-status";
 import { ConfirmDialog, Toast } from "../alerts/alert-dialog";
 import { IncidentPortalShell } from "../incidents/incident-shell";
 import { CURRENT_USER, currentActorLabel } from "../auth/current-user";
@@ -51,7 +49,6 @@ const FIELD_IDS: Record<keyof FormState, string> = {
   summary: "feed-summary",
   content: "feed-content",
   category: "feed-category",
-  sourceName: "feed-source",
   audience: "feed-audience",
   shareability: "feed-shareability",
   priority: "feed-priority",
@@ -68,7 +65,6 @@ type FormState = {
   summary: string;
   content: string;
   category: string;
-  sourceName: string;
   audience: string;
   shareability: AlertShareability;
   priority: FeedPriority | "";
@@ -84,7 +80,6 @@ function emptyForm(): FormState {
     summary: "",
     content: "",
     category: "",
-    sourceName: "",
     audience: "",
     shareability: "Internal only",
     priority: "",
@@ -99,7 +94,6 @@ function formFromItem(item: FeedItem): FormState {
     summary: item.summary ?? "",
     content: item.content ?? "",
     category: item.category,
-    sourceName: item.source,
     audience: item.audience ?? "",
     shareability: item.shareability ?? "Internal only",
     priority: item.priority ?? "",
@@ -119,7 +113,6 @@ function itemSignature(item: FeedItem) {
     item.summary ?? "",
     item.content ?? "",
     item.category,
-    item.source,
     item.audience ?? "",
     item.shareability ?? "",
     item.priority ?? "",
@@ -136,7 +129,6 @@ function formSignature(form: FormState) {
     form.summary,
     form.content,
     form.category,
-    form.sourceName,
     form.audience,
     form.shareability,
     form.priority,
@@ -202,7 +194,6 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
   const [summary, setSummary] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
-  const [sourceName, setSourceName] = useState("");
   const [audience, setAudience] = useState("");
   const [shareability, setShareability] = useState<AlertShareability>("Internal only");
   const [priority, setPriority] = useState<FeedPriority | "">("");
@@ -240,7 +231,6 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
     setSummary(seed.summary);
     setContent(seed.content);
     setCategory(seed.category);
-    setSourceName(seed.sourceName);
     setAudience(seed.audience);
     setShareability(seed.shareability);
     setPriority(seed.priority);
@@ -255,7 +245,6 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
     summary,
     content,
     category,
-    sourceName,
     audience,
     shareability,
     priority,
@@ -279,14 +268,6 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
     return Array.from(fromRecords).sort();
   }, [feedList, item]);
 
-  const internalSources = useMemo(() => feedSources.filter((entry) => entry.type === "Internal"), []);
-  const externalSources = useMemo(() => feedSources.filter((entry) => entry.type === "External"), []);
-  const hasCustomSource = Boolean(
-    item?.source && !feedSources.some((entry) => entry.name === item.source),
-  );
-
-  const selectedSource = feedSources.find((entry) => entry.name === sourceName) ?? null;
-  const previewSourceType = selectedSource?.type ?? item?.sourceType ?? "Internal";
   const previewStatus: FeedLifecycleStatus = isCreate ? "Draft" : currentStatus;
 
   const today = now !== null ? new Date(now).toISOString().slice(0, 10) : "";
@@ -299,7 +280,6 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
     else if (title.trim().length < 4) next.title = "Use a title of at least 4 characters.";
     if (!content.trim()) next.content = "Add the item content — this is the body staff will read.";
     if (!category) next.category = "Choose a category from the configured list.";
-    if (!sourceName) next.sourceName = "Choose the source for this item.";
     if (target === "publish" && publicationDate && today && publicationDate > today) {
       next.publicationDate = "Publishing takes effect immediately — choose today or an earlier date.";
     }
@@ -347,8 +327,6 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
       summary: summary.trim() || undefined,
       content: content.trim() || undefined,
       category,
-      source: sourceName,
-      sourceType: selectedSource?.type ?? item?.sourceType ?? "Internal",
       audience: audience.trim() || undefined,
       shareability,
       priority: priority === "" ? undefined : priority,
@@ -672,48 +650,6 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
                 </div>
 
                 <div>
-                  <label htmlFor="feed-source" className="block text-[13px] font-semibold text-[var(--foreground)]">
-                    Source <span className="text-[#991b1b]">*</span>
-                  </label>
-                  <div className="mt-2">
-                    <SelectControl
-                      id="feed-source"
-                      label="Source"
-                      invalid={Boolean(errors.sourceName)}
-                      value={sourceName}
-                      onChange={(value) => {
-                        setSourceName(value);
-                        if (errors.sourceName) setErrors((prev) => ({ ...prev, sourceName: undefined }));
-                      }}
-                      options={[
-                        { value: "", label: "Choose a source", disabled: true },
-                        ...(hasCustomSource && item?.source
-                          ? [{ value: item.source, label: `${item.source} (recorded)` }]
-                          : []),
-                        ...internalSources.map((entry) => ({
-                          value: entry.name,
-                          label: entry.name,
-                          group: "Internal sources",
-                        })),
-                        ...externalSources.map((entry) => ({
-                          value: entry.name,
-                          label: entry.name,
-                          group: "Approved external sources",
-                        })),
-                      ]}
-                    />
-                  </div>
-                  <FieldError id="feed-source-error" message={errors.sourceName} />
-                  {selectedSource && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)]">
-                      <ShieldCheck className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-                      {sourceTypeLabel(selectedSource.type)}
-                      {selectedSource.owner ? ` · owner ${selectedSource.owner}` : ""}
-                    </p>
-                  )}
-                </div>
-
-                <div>
                   <label htmlFor="feed-audience" className="block text-[13px] font-semibold text-[var(--foreground)]">
                     Audience
                   </label>
@@ -860,9 +796,6 @@ export function FeedEditor({ mode, feedId }: { mode: "create" | "edit"; feedId?:
 
                 <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px] text-[var(--muted-foreground)]">
                   {category || <span>No category</span>}
-                  <span aria-hidden="true">·</span>
-                  {sourceName || <span>No source</span>}
-                  {sourceName && <span>· {sourceTypeLabel(previewSourceType)}</span>}
                 </p>
 
                 {(summary.trim() || content.trim()) && (

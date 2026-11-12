@@ -5,9 +5,9 @@ import { feeds as seedFeeds, type FeedItem } from "@/app/dashboard/mock-data";
 // Shared Security Feed store. The Risk Dashboard and the Security Feed page both
 // read from this single source, so a publish/pin/withdraw here is reflected on
 // the dashboard without a reload. Mirrors the alert and incident store pattern.
-// Bumped to v2 when the Pending status and Nigerian Open Watch items were
-// seeded, so browsers holding v1 state pick up the new records.
-const STORAGE_KEY = "ice-security-feed-state-v2";
+// Bumped to v3 when the external source concept and the Pending status were
+// removed, so browsers holding older state pick up the new records.
+const STORAGE_KEY = "ice-security-feed-state-v3";
 
 let cachedState: FeedItem[] | null = null;
 const subscribers = new Set<() => void>();

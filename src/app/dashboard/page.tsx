@@ -658,7 +658,7 @@ export default function RiskDashboardPage() {
                       <span className="truncate text-[13px] font-medium text-[var(--foreground)]">{item.title}</span>
                     </div>
                     <div className="mt-1 text-[12px] text-[var(--muted-foreground)]">
-                      {formatFeedTimestamp(item.publishedAt ?? item.updatedAt)} · {item.source}
+                      {formatFeedTimestamp(item.publishedAt ?? item.updatedAt)} · {item.category}
                     </div>
                   </div>
                 </Link>

@@ -74,14 +74,10 @@ export type AlertItem = {
 // The Security Feed is the Risk Administrator's curated situational-awareness
 // channel. It is a distinct domain from alerts/advisories: a feed item is
 // published content, not a targeted advisory with acknowledgement tracking.
-// Lifecycle, pinning, category and source are kept separate on purpose — a
-// published item may originate from an approved external source, and source
-// ownership is not the same concept as item lifecycle.
-// "Pending" is an item received from an external source that is awaiting
-// review; "Draft" is an item authored internally that has not been published.
-export type FeedLifecycleStatus = "Pending" | "Draft" | "Published" | "Withdrawn" | "Archived";
-
-export type FeedSourceType = "Internal" | "External";
+// Every item is authored and published by the Risk Administrator (NSIA), so
+// there is no external feed source. "Draft" is an item that has not been
+// published yet.
+export type FeedLifecycleStatus = "Draft" | "Published" | "Withdrawn" | "Archived";
 
 // Priority mirrors the alert/incident severity vocabulary so severity is never
 // described two ways across the workspace. It is optional on a feed item: most
@@ -102,10 +98,6 @@ export type FeedItem = {
   category: string;
   status: FeedLifecycleStatus;
   pinned: boolean;
-  // `source` is the author/publisher label; `sourceType` distinguishes internal
-  // authorship from approved external content. It is never a trust score.
-  source: string;
-  sourceType: FeedSourceType;
   // ISO timestamps — rendered deterministically (UTC) so server and client
   // markup agree. `updatedAt` drives ordering and the date filter.
   publishedAt?: string;
@@ -121,18 +113,6 @@ export type FeedItem = {
   shareability?: AlertShareability;
   priority?: FeedPriority;
   history?: FeedTimelineEvent[];
-};
-
-// Approved external content sources. Management of these connections belongs to
-// the System Administrator; the Risk Administrator curates the content. This
-// directory is prototype fixture data (there is no live connector) and is used
-// only to describe where external items originate.
-export type FeedSource = {
-  id: string;
-  name: string;
-  type: FeedSourceType;
-  owner: string;
-  approved: boolean;
 };
 
 export type IncidentStatus =
@@ -1453,48 +1433,26 @@ export const incidents: IncidentItem[] = [
   },
 ];
 
-// Illustrative demo sources for the Security Feed prototype. The directory lists
-// which external sources are approved and who owns them; it does not represent a
-// live connector or a sync schedule. The Risk Administrator curates content;
-// adding/removing approved sources is a System Administrator responsibility.
-export const feedSources: FeedSource[] = [
-  { id: "SRC-EXT-01", name: "NCSC Advisory", type: "External", owner: "System Administrator", approved: true },
-  { id: "SRC-EXT-02", name: "GSOC Regional Bulletin", type: "External", owner: "System Administrator", approved: true },
-  { id: "SRC-EXT-03", name: "National Met Service", type: "External", owner: "System Administrator", approved: true },
-  { id: "SRC-EXT-04", name: "Vendor Security Bulletins", type: "External", owner: "System Administrator", approved: true },
-  { id: "SRC-EXT-05", name: "Nigerian Open Watch", type: "External", owner: "System Administrator", approved: true },
-  { id: "SRC-INT-01", name: "Security Desk", type: "Internal", owner: "Risk Administrator", approved: true },
-  { id: "SRC-INT-02", name: "Risk & Compliance", type: "Internal", owner: "Risk Administrator", approved: true },
-  { id: "SRC-INT-03", name: "Facilities", type: "Internal", owner: "Risk Administrator", approved: true },
-  { id: "SRC-INT-04", name: "ICT Operations", type: "Internal", owner: "Risk Administrator", approved: true },
-  { id: "SRC-INT-05", name: "Medical Services", type: "Internal", owner: "Risk Administrator", approved: true },
-  { id: "SRC-INT-06", name: "Operations", type: "Internal", owner: "Risk Administrator", approved: true },
-];
-
 // Canonical Security Feed records. The Security Feed page and the dashboard's
 // Security Feed Activity panel both read this list (via the shared feed store),
 // so their published/pinned counts and activity always agree. Prototype fixture
-// data — local only, no backend and no external connector.
+// data — local only, no backend. All items come from the Risk Administrator.
 export const feeds: FeedItem[] = [
   {
     id: "FD-2124",
     title: "Road blockade reported on Abuja–Kaduna expressway",
     summary:
-      "Nigerian Open Watch reports a road blockade on the Abuja–Kaduna expressway near Jere. Staff should avoid road travel on this route until it is cleared.",
+      "A road blockade has been reported on the Abuja–Kaduna expressway near Jere. Staff should avoid road travel on this route until it is cleared.",
     category: "Travel",
-    status: "Pending",
+    status: "Draft",
     pinned: false,
-    source: "Nigerian Open Watch",
-    sourceType: "External",
     content:
-      "Nigerian Open Watch reports a road blockade on the Abuja–Kaduna expressway near Jere, with traffic backed up in both directions. Staff should avoid road travel on this route until the blockade is confirmed cleared, use the rail service where travel is essential, and confirm movement plans with the transport desk before departing.",
+      "A road blockade has been reported on the Abuja–Kaduna expressway near Jere, with traffic backed up in both directions. Staff should avoid road travel on this route until the blockade is confirmed cleared, use the rail service where travel is essential, and confirm movement plans with the transport desk before departing.",
     audience: "Abuja HQ staff",
     shareability: "Internal only",
     priority: "Critical",
     updatedAt: "2026-11-02T08:20:00Z",
-    history: [
-      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "2 Nov 2026 · 08:20" },
-    ],
+    createdBy: "Mike Kanu",
   },
   {
     id: "FD-2123",
@@ -1502,19 +1460,15 @@ export const feeds: FeedItem[] = [
     summary:
       "Heavy rainfall has caused flash flooding in low-lying parts of Lagos Island and Victoria Island. Expect road closures and delayed commutes.",
     category: "Safety",
-    status: "Pending",
+    status: "Draft",
     pinned: false,
-    source: "Nigerian Open Watch",
-    sourceType: "External",
     content:
-      "Nigerian Open Watch reports flash flooding in low-lying parts of Lagos Island and Victoria Island following overnight rainfall. Several roads are impassable and commutes are significantly delayed. Do not drive or walk through flood water, allow extra travel time, and check in with your line manager if you cannot reach the office safely.",
+      "Flash flooding has been reported in low-lying parts of Lagos Island and Victoria Island following overnight rainfall. Several roads are impassable and commutes are significantly delayed. Do not drive or walk through flood water, allow extra travel time, and check in with your line manager if you cannot reach the office safely.",
     audience: "Lagos office staff",
     shareability: "Internal only",
     priority: "Advisory",
     updatedAt: "2026-11-02T06:45:00Z",
-    history: [
-      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "2 Nov 2026 · 06:45" },
-    ],
+    createdBy: "Mike Kanu",
   },
   {
     id: "FD-2122",
@@ -1522,19 +1476,15 @@ export const feeds: FeedItem[] = [
     summary:
       "A labour union rally is planned in Port Harcourt city centre on Wednesday. Expect heavy crowds and possible road closures around the rally route.",
     category: "Security",
-    status: "Pending",
+    status: "Draft",
     pinned: false,
-    source: "Nigerian Open Watch",
-    sourceType: "External",
     content:
-      "Nigerian Open Watch reports that a labour union rally is planned in Port Harcourt city centre on Wednesday, gathering from mid-morning. Expect heavy crowds and possible road closures along the rally route. Avoid the area where possible, do not engage with gatherings, and follow security desk guidance on office access for the day.",
+      "A labour union rally is planned in Port Harcourt city centre on Wednesday, gathering from mid-morning. Expect heavy crowds and possible road closures along the rally route. Avoid the area where possible, do not engage with gatherings, and follow security desk guidance on office access for the day.",
     audience: "Port Harcourt staff",
     shareability: "Internal only",
     priority: "Advisory",
     updatedAt: "2026-11-01T17:10:00Z",
-    history: [
-      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "1 Nov 2026 · 17:10" },
-    ],
+    createdBy: "Mike Kanu",
   },
   {
     id: "FD-2121",
@@ -1542,19 +1492,15 @@ export const feeds: FeedItem[] = [
     summary:
       "Reports of unofficial checkpoints extorting motorists on intercity routes have increased. Travel only on approved routes and report any suspicious stops.",
     category: "Travel",
-    status: "Pending",
+    status: "Draft",
     pinned: false,
-    source: "Nigerian Open Watch",
-    sourceType: "External",
     content:
-      "Nigerian Open Watch has recorded an increase in reports of unofficial checkpoints stopping and extorting motorists on intercity routes, particularly after dark. Travel only on approved routes and during daylight hours, keep vehicle doors locked, and report any suspicious stop to the security desk as soon as it is safe to do so.",
+      "There has been an increase in reports of unofficial checkpoints stopping and extorting motorists on intercity routes, particularly after dark. Travel only on approved routes and during daylight hours, keep vehicle doors locked, and report any suspicious stop to the security desk as soon as it is safe to do so.",
     audience: "All staff",
     shareability: "Internal only",
     priority: "Advisory",
     updatedAt: "2026-11-01T12:30:00Z",
-    history: [
-      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "1 Nov 2026 · 12:30" },
-    ],
+    createdBy: "Mike Kanu",
   },
   {
     id: "FD-2120",
@@ -1562,19 +1508,15 @@ export const feeds: FeedItem[] = [
     summary:
       "Fuel scarcity has led to long queues at filling stations in Abuja and Kano. Plan journeys in advance and avoid waiting in queues after dark.",
     category: "Operations",
-    status: "Pending",
+    status: "Draft",
     pinned: false,
-    source: "Nigerian Open Watch",
-    sourceType: "External",
     content:
-      "Nigerian Open Watch reports fuel scarcity in Abuja and Kano, with long queues forming at filling stations and some stations closed. Plan essential journeys in advance, keep pool vehicles fuelled where possible, and avoid waiting in queues after dark. Contact the transport desk if fuel shortages affect a planned trip.",
+      "Fuel scarcity has been reported in Abuja and Kano, with long queues forming at filling stations and some stations closed. Plan essential journeys in advance, keep pool vehicles fuelled where possible, and avoid waiting in queues after dark. Contact the transport desk if fuel shortages affect a planned trip.",
     audience: "General NSIA Group",
     shareability: "Internal only",
     priority: "Informational",
     updatedAt: "2026-10-31T15:05:00Z",
-    history: [
-      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "31 Oct 2026 · 15:05" },
-    ],
+    createdBy: "Mike Kanu",
   },
   {
     id: "FD-2119",
@@ -1582,19 +1524,15 @@ export const feeds: FeedItem[] = [
     summary:
       "Health authorities have confirmed cholera cases in parts of Kano State. Drink only treated water and report symptoms to Medical Services promptly.",
     category: "Medical",
-    status: "Pending",
+    status: "Draft",
     pinned: false,
-    source: "Nigerian Open Watch",
-    sourceType: "External",
     content:
-      "Nigerian Open Watch reports confirmed cholera cases in parts of Kano State. Drink only bottled or treated water, wash hands frequently, and avoid uncooked street food. Staff with symptoms such as sudden diarrhoea or vomiting should contact Medical Services immediately and should not report to the office.",
+      "Confirmed cholera cases have been reported in parts of Kano State. Drink only bottled or treated water, wash hands frequently, and avoid uncooked street food. Staff with symptoms such as sudden diarrhoea or vomiting should contact Medical Services immediately and should not report to the office.",
     audience: "Kano office staff",
     shareability: "Internal only",
     priority: "Advisory",
     updatedAt: "2026-10-31T09:40:00Z",
-    history: [
-      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "31 Oct 2026 · 09:40" },
-    ],
+    createdBy: "Mike Kanu",
   },
   {
     id: "FD-2118",
@@ -1602,19 +1540,15 @@ export const feeds: FeedItem[] = [
     summary:
       "A national grid disruption is expected to cause extended power outages across northern states. Offices should prepare backup power arrangements.",
     category: "Facilities",
-    status: "Pending",
+    status: "Draft",
     pinned: false,
-    source: "Nigerian Open Watch",
-    sourceType: "External",
     content:
-      "Nigerian Open Watch reports an expected national grid disruption that may cause extended power outages across northern states over the coming days. Facilities teams should confirm generator fuel levels and test backup power. Staff should save work regularly and report any loss of critical systems to ICT Operations.",
+      "A national grid disruption is expected that may cause extended power outages across northern states over the coming days. Facilities teams should confirm generator fuel levels and test backup power. Staff should save work regularly and report any loss of critical systems to ICT Operations.",
     audience: "Operations staff",
     shareability: "Internal only",
     priority: "Informational",
     updatedAt: "2026-10-30T13:20:00Z",
-    history: [
-      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "30 Oct 2026 · 13:20" },
-    ],
+    createdBy: "Mike Kanu",
   },
   {
     id: "FD-2117",
@@ -1622,19 +1556,15 @@ export const feeds: FeedItem[] = [
     summary:
       "Reports of mobile phone snatching by motorcycle riders around Wuse Market have increased. Keep phones out of sight when walking near busy roads.",
     category: "Security",
-    status: "Pending",
+    status: "Draft",
     pinned: false,
-    source: "Nigerian Open Watch",
-    sourceType: "External",
     content:
-      "Nigerian Open Watch reports an increase in mobile phone snatching by motorcycle riders around Wuse Market and nearby roads. Keep phones and valuables out of sight when walking near busy roads, avoid using your phone at the roadside, and report any incident to the security desk and the police.",
+      "An increase in mobile phone snatching by motorcycle riders has been reported around Wuse Market and nearby roads. Keep phones and valuables out of sight when walking near busy roads, avoid using your phone at the roadside, and report any incident to the security desk and the police.",
     audience: "Abuja HQ staff",
     shareability: "Internal only",
     priority: "Informational",
     updatedAt: "2026-10-29T10:15:00Z",
-    history: [
-      { title: "External source received", detail: "Report received from the approved Nigerian Open Watch source. Awaiting review before publishing.", time: "29 Oct 2026 · 10:15" },
-    ],
+    createdBy: "Mike Kanu",
   },
   {
     id: "FD-2116",
@@ -1644,8 +1574,6 @@ export const feeds: FeedItem[] = [
     category: "Security",
     status: "Published",
     pinned: false,
-    source: "Security Desk",
-    sourceType: "Internal",
     content:
       "The security desk has updated the emergency contact numbers for all offices. Save the new numbers from the staff directory and remove any old numbers from your phone. The security desk line remains available around the clock for any emergency or suspicious activity.",
     audience: "All staff",
@@ -1662,8 +1590,6 @@ export const feeds: FeedItem[] = [
     category: "Fire & safety",
     status: "Draft",
     pinned: false,
-    source: "Facilities",
-    sourceType: "Internal",
     content:
       "Draft schedule for the next round of fire warden refresher training across all offices. Each session covers evacuation routes, assembly points and extinguisher use. Dates are still to be confirmed with each office, so this item has not been published.",
     audience: "All staff",
@@ -1679,8 +1605,6 @@ export const feeds: FeedItem[] = [
     category: "Security",
     status: "Published",
     pinned: true,
-    source: "NCSC Advisory",
-    sourceType: "External",
     content:
       "The internal IT service desk has reported a phishing campaign using look-alike sender addresses and a fake credential-reset landing page. Do not open unexpected password-reset links or attachments — the service desk will never ask for your password by email. Report suspected messages with the Report Phishing action, and contact the security desk immediately if you have already entered credentials.",
     audience: "All staff",
@@ -1690,7 +1614,6 @@ export const feeds: FeedItem[] = [
     updatedAt: "2026-10-16T09:30:00Z",
     publishedBy: "Mike Kanu",
     history: [
-      { title: "External source received", detail: "Advisory received from the approved NCSC Advisory source.", time: "16 Oct 2026 · 09:12" },
       { title: "Item published", detail: "Reviewed and published to the Security Feed by Mike Kanu.", time: "16 Oct 2026 · 09:30" },
     ],
   },
@@ -1702,8 +1625,6 @@ export const feeds: FeedItem[] = [
     category: "Security",
     status: "Published",
     pinned: false,
-    source: "Security Desk",
-    sourceType: "Internal",
     content:
       "Apply the updated visitor screening steps at every reception point: confirm a photo ID against the visitor record, issue a dated badge, and escort contractors beyond the lobby. Do not admit visitors whose host cannot be reached. Escalate any refused or suspicious attempt to the security desk immediately.",
     audience: "Reception and security staff",
@@ -1716,14 +1637,12 @@ export const feeds: FeedItem[] = [
     id: "FD-2112",
     title: "Regional protest activity near Kano corridor",
     summary:
-      "Regional bulletin reports planned protest activity near the Kano office corridor this week. Avoid non-essential travel and follow transport guidance.",
+      "Protest activity is planned near the Kano office corridor this week. Avoid non-essential travel and follow transport guidance.",
     category: "Travel",
     status: "Published",
     pinned: true,
-    source: "GSOC Regional Bulletin",
-    sourceType: "External",
     content:
-      "The regional bulletin reports planned protest activity near the Kano office corridor this week, with possible road closures and transport delays. Avoid non-essential travel along the affected routes, follow marshal guidance, and confirm your route with the transport desk before departing. Report any disruption to the security desk.",
+      "Protest activity is planned near the Kano office corridor this week, with possible road closures and transport delays. Avoid non-essential travel along the affected routes, follow marshal guidance, and confirm your route with the transport desk before departing. Report any disruption to the security desk.",
     audience: "Kano office staff",
     shareability: "Internal only",
     priority: "Advisory",
@@ -1731,7 +1650,6 @@ export const feeds: FeedItem[] = [
     updatedAt: "2026-10-16T08:05:00Z",
     publishedBy: "Mike Kanu",
     history: [
-      { title: "External source received", detail: "Bulletin received from the approved GSOC Regional Bulletin source.", time: "16 Oct 2026 · 07:55" },
       { title: "Item published", detail: "Reviewed and published to the Security Feed by Mike Kanu.", time: "16 Oct 2026 · 08:05" },
     ],
   },
@@ -1743,8 +1661,6 @@ export const feeds: FeedItem[] = [
     category: "Awareness",
     status: "Draft",
     pinned: false,
-    source: "Risk & Compliance",
-    sourceType: "Internal",
     content:
       "Draft planning note for next month's security awareness theme. The intended focus is social-engineering awareness, with a short briefing for team leads and a set of posters for common areas. This is a draft and has not been reviewed or published.",
     audience: "All staff",
@@ -1760,8 +1676,6 @@ export const feeds: FeedItem[] = [
     category: "ICT",
     status: "Published",
     pinned: false,
-    source: "ICT Operations",
-    sourceType: "Internal",
     content:
       "Planned VPN maintenance overnight will require staff to reconnect. Reconnection prompts are legitimate and do not require credentials to be re-entered on any external page. If you are asked for credentials outside the normal sign-in page, stop and report it to the security desk.",
     audience: "All staff",
@@ -1774,14 +1688,12 @@ export const feeds: FeedItem[] = [
     id: "FD-2109",
     title: "Severe weather outlook for Lagos region",
     summary:
-      "National forecast indicates heavy rainfall and localised flooding risk. Staff should plan travel accordingly and allow additional time.",
+      "Heavy rainfall and localised flooding risk are forecast. Staff should plan travel accordingly and allow additional time.",
     category: "Travel",
     status: "Published",
     pinned: false,
-    source: "National Met Service",
-    sourceType: "External",
     content:
-      "The national forecast indicates heavy rainfall and localised flooding risk in the Lagos region over the coming days. Plan travel accordingly, allow additional time, and avoid routes prone to flooding. Report any travel disruption or safety concern to the security desk.",
+      "Heavy rainfall and localised flooding risk are forecast in the Lagos region over the coming days. Plan travel accordingly, allow additional time, and avoid routes prone to flooding. Report any travel disruption or safety concern to the security desk.",
     audience: "Lagos office staff",
     shareability: "Internal only",
     priority: "Advisory",
@@ -1797,8 +1709,6 @@ export const feeds: FeedItem[] = [
     category: "Security",
     status: "Withdrawn",
     pinned: false,
-    source: "Security Desk",
-    sourceType: "Internal",
     publishedAt: "2026-10-14T10:05:00Z",
     updatedAt: "2026-10-14T13:30:00Z",
     publishedBy: "Mike Kanu",
@@ -1815,8 +1725,6 @@ export const feeds: FeedItem[] = [
     category: "Medical",
     status: "Published",
     pinned: false,
-    source: "Medical Services",
-    sourceType: "Internal",
     content:
       "During high temperatures, take regular breaks, stay hydrated, and avoid prolonged exposure to direct sun. Report symptoms such as dizziness, headache or nausea to the medical room promptly. Keep an eye on colleagues working outdoors.",
     audience: "All staff",
@@ -1833,8 +1741,6 @@ export const feeds: FeedItem[] = [
     category: "Safety",
     status: "Archived",
     pinned: false,
-    source: "Operations",
-    sourceType: "Internal",
     publishedAt: "2026-10-10T11:00:00Z",
     updatedAt: "2026-10-13T08:00:00Z",
     publishedBy: "Mike Kanu",
@@ -1847,14 +1753,12 @@ export const feeds: FeedItem[] = [
     id: "FD-2105",
     title: "Critical patch available for perimeter appliances",
     summary:
-      "Vendor bulletin announces a critical patch for perimeter security appliances. ICT Operations is scheduling the update; no action is required from staff.",
+      "A critical patch is available for perimeter security appliances. ICT Operations is scheduling the update; no action is required from staff.",
     category: "ICT",
     status: "Published",
     pinned: true,
-    source: "Vendor Security Bulletins",
-    sourceType: "External",
     content:
-      "The vendor bulletin announces a critical patch for the perimeter security appliances. ICT Operations is scheduling the update during the next maintenance window. No action is required from staff; the expected interruption to external services is under ten minutes.",
+      "A critical patch is available for the perimeter security appliances. ICT Operations is scheduling the update during the next maintenance window. No action is required from staff; the expected interruption to external services is under ten minutes.",
     audience: "ICT Operations",
     shareability: "Internal only",
     priority: "Critical",
@@ -1862,7 +1766,6 @@ export const feeds: FeedItem[] = [
     updatedAt: "2026-10-13T13:10:00Z",
     publishedBy: "Mike Kanu",
     history: [
-      { title: "External source received", detail: "Bulletin received from the approved Vendor Security Bulletins source.", time: "13 Oct 2026 · 12:45" },
       { title: "Item published", detail: "Reviewed and published to the Security Feed by Mike Kanu.", time: "13 Oct 2026 · 13:10" },
     ],
   },
@@ -1874,8 +1777,6 @@ export const feeds: FeedItem[] = [
     category: "Safety",
     status: "Draft",
     pinned: false,
-    source: "Facilities",
-    sourceType: "Internal",
     updatedAt: "2026-10-13T10:20:00Z",
     createdBy: "Mike Kanu",
   },
@@ -1887,8 +1788,6 @@ export const feeds: FeedItem[] = [
     category: "Safety",
     status: "Published",
     pinned: false,
-    source: "Facilities",
-    sourceType: "Internal",
     publishedAt: "2026-10-12T07:30:00Z",
     updatedAt: "2026-10-12T07:30:00Z",
     publishedBy: "Mike Kanu",
@@ -1897,17 +1796,15 @@ export const feeds: FeedItem[] = [
     id: "FD-2102",
     title: "Regional travel advisory (superseded)",
     summary:
-      "Superseded regional travel advisory. Withdrawn and replaced by a refreshed bulletin from the same source.",
+      "Superseded regional travel advisory. Withdrawn and replaced by a refreshed advisory.",
     category: "Travel",
     status: "Withdrawn",
     pinned: false,
-    source: "GSOC Regional Bulletin",
-    sourceType: "External",
     publishedAt: "2026-10-08T09:00:00Z",
     updatedAt: "2026-10-11T15:40:00Z",
     publishedBy: "Mike Kanu",
     history: [
-      { title: "External source received", detail: "Bulletin received from the approved GSOC Regional Bulletin source.", time: "08 Oct 2026 · 09:00" },
+      { title: "Item published", detail: "Published to the Security Feed by Mike Kanu.", time: "08 Oct 2026 · 09:00" },
       { title: "Item withdrawn", detail: "Withdrawn by Mike Kanu and superseded by a refreshed bulletin. Retained for audit history.", time: "11 Oct 2026 · 15:40" },
     ],
   },
@@ -1919,8 +1816,6 @@ export const feeds: FeedItem[] = [
     category: "Awareness",
     status: "Archived",
     pinned: false,
-    source: "Security Desk",
-    sourceType: "Internal",
     publishedAt: "2026-10-03T08:00:00Z",
     updatedAt: "2026-10-06T09:00:00Z",
     publishedBy: "Mike Kanu",
