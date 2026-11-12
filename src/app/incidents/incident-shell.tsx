@@ -125,7 +125,7 @@ function PortalSearchField() {
         })),
       ...feedItems
         .filter((item) =>
-          `${item.id} ${item.title} ${item.summary ?? ""} ${item.content ?? ""} ${item.category} ${item.status}`
+          `${item.id} ${item.title} ${item.summary ?? ""} ${item.content ?? ""} ${item.category} ${item.source} ${item.status}`
             .toLocaleLowerCase()
             .includes(term),
         )

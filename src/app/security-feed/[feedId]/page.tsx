@@ -23,6 +23,7 @@ import {
   formatFeedTimestamp,
   canPublishFeedItem,
   isPublished,
+  sourceTypeLabel,
 } from "../feed-status";
 import { ConfirmDialog, Toast } from "../../alerts/alert-dialog";
 import { IncidentPortalShell } from "../../incidents/incident-shell";
@@ -113,7 +114,7 @@ function FeedDetailContent() {
     return <FeedNotFound feedId={feedId} />;
   }
 
-  const publishable = canPublishFeedItem(item.status);
+  const publishable = item.sourceType === "External" && canPublishFeedItem(item.status);
   const withdrawable = isPublished(item.status);
 
   const showToast = (message: string, tone: "success" | "error") => {
@@ -242,6 +243,8 @@ function FeedDetailContent() {
                 </div>
                 <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px] text-[var(--muted-foreground)]">
                   <span className="font-medium text-[var(--foreground)]">{item.id}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{item.source}</span>
                 </p>
               </div>
             </div>
@@ -253,6 +256,8 @@ function FeedDetailContent() {
 
           <div className="mt-4 grid gap-x-6 gap-y-4 border-t border-[var(--border)] pt-4 sm:grid-cols-2 lg:grid-cols-3">
             <MetaField icon={Tag} label="Category" value={item.category} />
+            <MetaField icon={Building2} label="Source" value={item.source} />
+            <MetaField icon={ShieldCheck} label="Source type" value={sourceTypeLabel(item.sourceType)} />
             <MetaField icon={UsersRound} label="Audience" value={item.audience ?? "Not set"} />
             <MetaField icon={ShieldCheck} label="Shareability" value={item.shareability ?? "Not set"} />
             <MetaField icon={CalendarClock} label="Published" value={formatFeedTimestamp(item.publishedAt)} />

@@ -23,7 +23,6 @@ import {
 } from "./alert-state";
 import {
   ALERT_PRIORITY_OPTIONS,
-  ALERT_SHAREABILITY_OPTIONS,
   MAX_ALERT_SUMMARY,
   MAX_ALERT_TITLE,
   alertDraftFieldsFromItem,
@@ -603,26 +602,15 @@ export function AlertEditor({ mode, alertId }: { mode: "create" | "edit"; alertI
                 </div>
 
                 <div>
-                  <label htmlFor="alert-shareability" className="block text-[13px] font-semibold text-[var(--foreground)]">
+                  <span className="block text-[13px] font-semibold text-[var(--foreground)]">
                     Shareability
-                  </label>
-                  <div className="mt-2">
-                    <SelectControl
-                      id="alert-shareability"
-                      label="Shareability"
-                      value={fields.shareability}
-                      onChange={(value) => update("shareability", value as AlertDraftFields["shareability"])}
-                      options={[
-                        ...ALERT_SHAREABILITY_OPTIONS.map((value) => ({ value, label: value })),
-                        ...(fields.shareability === "Restricted"
-                          ? [{ value: "Restricted", label: "Restricted (legacy)", disabled: true }]
-                          : []),
-                      ]}
-                    />
+                  </span>
+                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 py-2.5">
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--primary)]" strokeWidth={2} />
+                    <span className="text-[13px] text-[var(--foreground)]">{fields.shareability}</span>
                   </div>
-                  <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)]">
-                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-                    Recorded as a label only &mdash; sharing is not enforced.
+                  <p className="mt-1.5 text-[12px] text-[var(--muted-foreground)]">
+                    Alerts stay inside the portal and cannot be shared externally.
                   </p>
                 </div>
               </div>

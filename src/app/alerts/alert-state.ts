@@ -44,7 +44,16 @@ export function readAlertState(): AlertItem[] {
     }
 
     const parsed = JSON.parse(stored) as AlertItem[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : seedAlerts;
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return seedAlerts;
+    }
+
+    // Alerts are internal-only communications. Older stored state may still
+    // carry the removed "Shareable" label, so normalise it on read rather than
+    // resurrecting an option the alert form no longer offers.
+    return parsed.map((item): AlertItem =>
+      item.shareability === "Shareable" ? { ...item, shareability: "Internal only" } : item,
+    );
   } catch {
     return seedAlerts;
   }

@@ -8,6 +8,8 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  ExternalLink,
   FilePenLine,
   MoreHorizontal,
   Newspaper,
@@ -33,6 +35,7 @@ import {
   formatFeedTimestamp,
   canPublishFeedItem,
   isDraft,
+  isPending,
   isPublished,
 } from "./feed-status";
 import { ConfirmDialog, Toast } from "../alerts/alert-dialog";
@@ -226,7 +229,7 @@ function FeedRowMenu({
               onSelect={() => onTogglePin(item)}
             />
           )}
-          {canPublishFeedItem(item.status) && (
+          {item.sourceType === "External" && canPublishFeedItem(item.status) && (
             <RowMenuAction label="Publish item" icon={Send} onSelect={() => onAction({ item, action: "publish" })} />
           )}
           {isPublished(item.status) && (
@@ -312,6 +315,8 @@ function SecurityFeedPageInner() {
   const search = searchParams.get("search") ?? "";
   const status = searchParams.get("status") ?? "all";
   const category = searchParams.get("category") ?? "all";
+  const source = searchParams.get("source") ?? "all";
+  const sourceType = searchParams.get("sourceType") ?? "all";
   const period = searchParams.get("period") ?? "all";
   const pinned = searchParams.get("pinned") ?? "all";
 
@@ -343,21 +348,31 @@ function SecurityFeedPageInner() {
     [feedList],
   );
 
+  const sourceOptions = useMemo(
+    () => [
+      { value: "all", label: "All sources" },
+      ...Array.from(new Set(feedList.map((item) => item.source))).sort().map((value) => ({ value, label: value })),
+    ],
+    [feedList],
+  );
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     const cutoff = periodCutoff(period, now);
     return feedList.filter((item) => {
       if (status !== "all" && item.status !== status) return false;
       if (category !== "all" && item.category !== category) return false;
+      if (source !== "all" && item.source !== source) return false;
+      if (sourceType !== "all" && item.sourceType !== sourceType) return false;
       if (pinned === "only" && !item.pinned) return false;
       if (cutoff !== null && Date.parse(item.updatedAt) < cutoff) return false;
       if (term.length > 0) {
-        const haystack = `${item.title} ${item.id} ${item.category} ${item.summary ?? ""}`.toLowerCase();
+        const haystack = `${item.title} ${item.id} ${item.category} ${item.source} ${item.summary ?? ""}`.toLowerCase();
         if (!haystack.includes(term)) return false;
       }
       return true;
     });
-  }, [feedList, now, period, status, category, pinned, search]);
+  }, [feedList, now, period, status, category, source, sourceType, pinned, search]);
 
   const sorted = useMemo(() => {
     const items = [...filtered];
@@ -390,11 +405,15 @@ function SecurityFeedPageInner() {
   // dashboard and act as stable navigation filters.
   const publishedCount = feedList.filter((item) => isPublished(item.status)).length;
   const pinnedCount = feedList.filter((item) => item.pinned).length;
+  const pendingCount = feedList.filter((item) => isPending(item.status)).length;
   const draftCount = feedList.filter((item) => isDraft(item.status)).length;
+  const externalCount = feedList.filter((item) => item.sourceType === "External").length;
 
   const activeFilterCount = [
     status !== "all",
     category !== "all",
+    source !== "all",
+    sourceType !== "all",
     period !== "all",
     pinned === "only",
     search.trim().length > 0,
@@ -459,9 +478,9 @@ function SecurityFeedPageInner() {
         </>
       }
       pageTitle="Security Feed"
-      description="Monitor and manage security updates published by the Risk Administrator."
+      description="Monitor security updates and approved source attribution."
     >
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <SummaryCard
           label="Published items"
           value={publishedCount}
@@ -479,6 +498,14 @@ function SecurityFeedPageInner() {
           onClick={() => applyFilters({ pinned: pinned === "only" ? "all" : "only" })}
         />
         <SummaryCard
+          label="Pending review"
+          value={pendingCount}
+          icon={Clock}
+          tone="amber"
+          selected={status === "Pending"}
+          onClick={() => applyFilters({ status: status === "Pending" ? "all" : "Pending" })}
+        />
+        <SummaryCard
           label="Drafts"
           value={draftCount}
           icon={FilePenLine}
@@ -486,11 +513,20 @@ function SecurityFeedPageInner() {
           selected={status === "Draft"}
           onClick={() => applyFilters({ status: status === "Draft" ? "all" : "Draft" })}
         />
+        <SummaryCard
+          label="External items"
+          value={externalCount}
+          icon={ExternalLink}
+          tone="blue"
+          selected={sourceType === "External"}
+          onClick={() => applyFilters({ sourceType: sourceType === "External" ? "all" : "External" })}
+        />
       </div>
 
-      <div className="mt-4 grid gap-3 rounded-[16px] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-soft)] md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-3 rounded-[16px] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-soft)] md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <FilterSelect label="Status" icon={SlidersHorizontal} value={status} options={STATUS_OPTIONS} onChange={(value) => applyFilters({ status: value })} />
         <FilterSelect label="Category" icon={Newspaper} value={category} options={categoryOptions} onChange={(value) => applyFilters({ category: value })} />
+        <FilterSelect label="Source" icon={ExternalLink} value={source} options={sourceOptions} onChange={(value) => applyFilters({ source: value })} />
         <FilterSelect label="Reporting period" icon={SlidersHorizontal} value={period} options={PERIOD_OPTIONS} onChange={(value) => applyFilters({ period: value })} />
         <div className="flex items-end">
           <button
@@ -533,7 +569,7 @@ function SecurityFeedPageInner() {
                 }}
                 aria-label="Search feed items"
                 className="w-full border-0 bg-transparent text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)]"
-                placeholder="Search feed items or categories..."
+                placeholder="Search feed items, categories or sources..."
               />
             </div>
           </div>
@@ -545,6 +581,7 @@ function SecurityFeedPageInner() {
               <tr className="text-[11px] text-[var(--muted-foreground)]">
                 <SortHeader label="Feed item" sortKey="title" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
                 <SortHeader label="Category" sortKey="category" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                <th scope="col" className="border-b border-[var(--border)] px-3 py-3 font-medium">Source</th>
                 <SortHeader label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
                 <SortHeader label="Published / updated" sortKey="updated" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
                 <th scope="col" className="border-b border-[var(--border)] px-3 py-3 text-right font-medium">Action</th>
@@ -571,6 +608,9 @@ function SecurityFeedPageInner() {
                       </Link>
                     </td>
                     <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--muted-foreground)]">{item.category}</td>
+                    <td className="border-b border-[var(--border)] px-3 py-3 text-[var(--foreground)]">
+                      {item.source}
+                    </td>
                     <td className="border-b border-[var(--border)] px-3 py-3">
                       <FeedStatusBadge status={item.status} />
                     </td>
@@ -603,7 +643,9 @@ function SecurityFeedPageInner() {
           <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center">
             {feedList.length === 0 ? (
               <>
-                <p className="text-[13px] text-[var(--muted-foreground)]">No feed items have been created yet.</p>
+                <p className="text-[13px] text-[var(--muted-foreground)]">
+                  No external feed items to show. No external source connection is confirmed for this portal.
+                </p>
               </>
             ) : (
               <>

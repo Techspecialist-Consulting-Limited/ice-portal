@@ -1,12 +1,14 @@
-import type { FeedLifecycleStatus, FeedPriority } from "@/app/dashboard/mock-data";
+import type { FeedLifecycleStatus, FeedPriority, FeedSourceType } from "@/app/dashboard/mock-data";
 import { ToneBadge, incidentPriorityTone, type IncidentTone } from "../incidents/incident-status";
 
 export type FeedTone = IncidentTone;
 
 // Single source of truth for feed lifecycle semantics. The summary cards, the
 // status filter, badges and the dashboard all derive from here so a feed state
-// is never described two ways.
+// is never described two ways. Lifecycle is kept separate from source type —
+// a Published item may originate from an External source.
 const feedStatusToneMap: Record<FeedLifecycleStatus, FeedTone> = {
+  Pending: "warning",
   Draft: "neutral",
   Published: "success",
   Withdrawn: "neutral",
@@ -17,7 +19,7 @@ export function feedStatusTone(status: FeedLifecycleStatus): FeedTone {
   return feedStatusToneMap[status] ?? "neutral";
 }
 
-export const FEED_STATUS_ORDER: FeedLifecycleStatus[] = ["Draft", "Published", "Withdrawn", "Archived"];
+export const FEED_STATUS_ORDER: FeedLifecycleStatus[] = ["Pending", "Draft", "Published", "Withdrawn", "Archived"];
 
 export function isPublished(status: FeedLifecycleStatus) {
   return status === "Published";
@@ -27,20 +29,25 @@ export function isDraft(status: FeedLifecycleStatus) {
   return status === "Draft";
 }
 
-// Items that have not gone live yet.
-export function canPublishFeedItem(status: FeedLifecycleStatus) {
-  return status === "Draft";
+export function isPending(status: FeedLifecycleStatus) {
+  return status === "Pending";
 }
 
-// Feed items that are live to the audience. Draft/Withdrawn/Archived are not
+// Items that have not gone live yet: internal drafts and external items
+// awaiting review are both published through the same action.
+export function canPublishFeedItem(status: FeedLifecycleStatus) {
+  return status === "Pending" || status === "Draft";
+}
+
+// Feed items that are live to the audience. Pending/Draft/Withdrawn/Archived are not
 // active in the feed.
 export function isActiveFeedItem(status: FeedLifecycleStatus) {
   return status === "Published";
 }
 
-// Authoring/curation is only meaningful for Draft and Published items.
+// Authoring/curation is only meaningful for Pending, Draft and Published items.
 export function canEditFeedItem(status: FeedLifecycleStatus) {
-  return status === "Draft" || status === "Published";
+  return status === "Pending" || status === "Draft" || status === "Published";
 }
 
 export function FeedStatusBadge({ status, className }: { status: FeedLifecycleStatus; className?: string }) {
@@ -52,6 +59,11 @@ export function FeedStatusBadge({ status, className }: { status: FeedLifecycleSt
 export function FeedPriorityBadge({ priority, className }: { priority?: FeedPriority; className?: string }) {
   if (!priority) return null;
   return <ToneBadge label={priority} tone={incidentPriorityTone(priority)} className={className} />;
+}
+
+// Source type is a separate concept from lifecycle. It is a neutral descriptor.
+export function sourceTypeLabel(type: FeedSourceType) {
+  return type === "External" ? "External source" : "Internal";
 }
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

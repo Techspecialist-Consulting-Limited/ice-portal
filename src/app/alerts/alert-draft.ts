@@ -50,7 +50,11 @@ export type AlertDraftErrors = Partial<Record<keyof AlertDraftFields, string>>;
 export const ALERT_ADMINISTRATOR = CURRENT_USER.name;
 
 export const ALERT_PRIORITY_OPTIONS: AlertPriority[] = ["Critical", "Advisory", "Informational"];
-export const ALERT_SHAREABILITY_OPTIONS: AlertShareability[] = ["Internal only", "Shareable"];
+// Alerts are internal-only communications. There is no external sharing option,
+// so a legacy "Shareable" label is normalised away on load and on commit.
+export function normaliseAlertShareability(value: AlertShareability): AlertShareability {
+  return value === "Shareable" ? "Internal only" : value;
+}
 export const ALERT_OTHER_CATEGORY = "__other__";
 export const ALERT_CONFIGURED_CATEGORIES = Array.from(new Set(seedAlerts.map((alert) => alert.category))).sort();
 
@@ -87,7 +91,7 @@ export function alertDraftFieldsFromItem(item: AlertItem): AlertDraftFields {
     priority: item.priority,
     audience: item.audience,
     location: item.location,
-    shareability: item.shareability,
+    shareability: normaliseAlertShareability(item.shareability),
     acknowledgementRequired: item.acknowledgementRequired,
     acknowledgementTargetCount: item.acknowledgementTargetCount
       ? String(item.acknowledgementTargetCount)
@@ -286,7 +290,7 @@ export function commitAlert(
     priority: fields.priority as AlertPriority,
     audience: fields.audience.trim(),
     location: fields.location.trim(),
-    shareability: fields.shareability,
+    shareability: normaliseAlertShareability(fields.shareability),
     acknowledgementRequired: fields.acknowledgementRequired,
     acknowledgementTargetCount: fields.acknowledgementRequired
       ? Number(fields.acknowledgementTargetCount)
